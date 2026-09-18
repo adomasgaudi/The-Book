@@ -1,0 +1,59 @@
+# Mūsų namų bibliotekos dalinimuisi
+
+Namų bibliotekos katalogas — **v8**, perrašytas iš Google Apps Script (`BIBLIOTEKA_v7_Code.gs`) į
+statinę, be serverio veikiančią svetainę: **Next.js 16 (App Router, static export) · TypeScript · Tailwind v4 · Dexie (IndexedDB)**.
+Veikia iš GitHub Pages, telefone ir kompiuteryje, po pirmo atidarymo — ir be interneto.
+
+## Kas išliko iš v7 (funkcionalumas 1:1)
+
+| Apps Script | Čia |
+|---|---|
+| `CFG` (patalpos, statusai, skaitytojai, judėjimų tipai) | `src/lib/domain/config.ts` |
+| `getCatalogIndex`, greitieji filtrai (patikslintini, dublikatai, be kainos, be nuotraukos, be lentynos foto) | `catalog.ts` + puslapis **Katalogas** |
+| `getBook`, `updateBook`, `addBookPhoto`, `deleteBook`/`restoreBook` | **Knygos kortelė** |
+| `addBook`, `lookupISBN` (Google Books → OpenLibrary) | **Pridėti** |
+| `addShelf`, `markShelfPending`, `getShelves` | **Lentynos** |
+| `recordMove` (visi 11 tipų, puslapių delta, atvirų uždarymas, „Perkelta“, „Parduota“ pastaba), `getMoves` (atviri / vėluoja) | `moves.ts` + **Judėjimai** |
+| `getReadingStats` | **Skaitymas** |
+| `addWish`, `getWishes`, `setWishStatus`, `wishToCatalog` | **Noriu** |
+| `markInventory` | Knygos kortelė → Inventorizacija |
+| `getStats` | **Statistika** |
+| `importuotiCsv`, `dublikatuPaieska`, `sulietiPoras`, `Nustatymai`, `Log` | **Įrankiai** |
+| `siustiPriminimus` (el. paštas) | Vėluojančių skaitiklis meniu + skirtukas „Vėluoja“ (statinė svetainė laiškų siųsti negali) |
+| Drive nuotraukų aplankas | Nuotraukos saugomos IndexedDB (suspaustos iki 1600 px), eksportuojamos su atsargine kopija |
+
+Duomenų modelis (`src/lib/domain/types.ts`) — vienas lapo stulpelis = vienas laukas; ID formatai (`K00001`, `J0001`, `W0001`) nepakeisti.
+
+## Architektūra
+
+```
+src/lib/domain/   gryna logika be saugyklos (testuojama vitest'u)
+src/lib/repo/     LibraryRepo — visos operacijos; Dexie/IndexedDB saugykla, atsarginė kopija, seed
+src/components/   UI primityvai, formos, nuotraukos
+src/app/          puslapiai (App Router, "use client", static export)
+e2e/              Playwright dūmų testas per visus srautus
+```
+
+`LibraryRepo` yra vienintelis UI įėjimas į duomenis — norint pereiti prie bendro serverio
+(Supabase, Google Sheets API, savo REST) keičiamas tik `src/lib/repo/`.
+
+## Paleidimas
+
+```bash
+npm ci
+npm run dev        # http://localhost:3000
+npm run check      # lint + typecheck + unit testai
+npm run build      # statinis eksportas į out/
+npm run e2e        # naršyklės testas prieš out/ (reikia Chromium)
+```
+
+## Diegimas į GitHub Pages
+
+1. GitHub → **Settings → Pages → Source: GitHub Actions**.
+2. Kiekvienas `push` į `main` paleidžia `.github/workflows/deploy.yml` (check → build → deploy).
+3. Svetainė: `https://<vartotojas>.github.io/<repo>/` — sub-kelias įrašomas per `NEXT_PUBLIC_BASE_PATH`.
+
+## Duomenys ir atsarginės kopijos
+
+Duomenys gyvena naršyklės IndexedDB **tame įrenginyje**. Įrankiai → *Atsarginė kopija* eksportuoja viską (su nuotraukomis) į JSON
+ir įkelia kitame įrenginyje (pakeisti / sulieti). Katalogą galima eksportuoti CSV su tais pačiais stulpelių pavadinimais kaip v7 lape.

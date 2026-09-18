@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_TITLE } from "@/lib/domain/config";
 import { ToastHost } from "./Toast";
+import { useMoves } from "@/lib/repo/hooks";
 
 const NAV = [
   { href: "/", label: "Katalogas", icon: "📚" },
@@ -22,6 +23,13 @@ function isActive(path: string, href: string) {
   return path.startsWith(href.replace(/\/$/, ""));
 }
 
+/** Vėluojančių grąžinimų skaičius — atstoja originalo el. pašto priminimus (siustiPriminimus). */
+function LateBadge() {
+  const late = useMoves("late");
+  if (!late?.length) return null;
+  return <span className="ml-auto rounded-full bg-bad px-1.5 text-[11px] font-semibold text-white" title="Vėluoja grąžinti">{late.length}</span>;
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname() || "/";
   return (
@@ -33,7 +41,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Link key={n.href} href={n.href}
               className={"flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[15px] " +
                 (isActive(path, n.href) ? "bg-accent-soft font-medium" : "hover:bg-accent-soft/60")}>
-              <span className="w-5 text-center">{n.icon}</span>{n.label}
+              <span className="w-5 text-center">{n.icon}</span>{n.label}{n.href === "/moves/" && <LateBadge />}
             </Link>
           ))}
         </nav>
@@ -50,7 +58,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           {NAV.filter((n) => MOBILE.includes(n.href)).map((n) => (
             <Link key={n.href} href={n.href}
               className={"flex flex-col items-center gap-0.5 py-2 text-[11px] " + (isActive(path, n.href) ? "text-accent font-semibold" : "text-muted")}>
-              <span className="text-lg leading-none">{n.icon}</span>{n.label}
+              <span className="relative text-lg leading-none">{n.icon}{n.href === "/moves/" && <span className="absolute -right-3 -top-1"><LateBadge /></span>}</span>{n.label}
             </Link>
           ))}
         </nav>

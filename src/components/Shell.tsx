@@ -5,17 +5,20 @@ import { usePathname } from "next/navigation";
 import { APP_TITLE } from "@/lib/domain/config";
 import { ToastHost } from "./Toast";
 import { useMoves } from "@/lib/repo/hooks";
+import { Icon, type IconName } from "./icons";
 
-const NAV = [
-  { href: "/", label: "Katalogas", icon: "📚" },
-  { href: "/quick/", label: "Greitai", icon: "⚡" },
-  { href: "/add/", label: "Pridėti", icon: "＋" },
-  { href: "/moves/", label: "Judėjimai", icon: "🔁" },
-  { href: "/reading/", label: "Skaitymas", icon: "📖" },
-  { href: "/wishes/", label: "Noriu", icon: "⭐" },
-  { href: "/shelves/", label: "Lentynos", icon: "🗄️" },
-  { href: "/stats/", label: "Statistika", icon: "📊" },
-  { href: "/tools/", label: "Įrankiai", icon: "🛠️" },
+const VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "";
+
+const NAV: { href: string; label: string; icon: IconName }[] = [
+  { href: "/", label: "Katalogas", icon: "book" },
+  { href: "/quick/", label: "Greitai", icon: "bolt" },
+  { href: "/add/", label: "Pridėti", icon: "plus" },
+  { href: "/moves/", label: "Judėjimai", icon: "repeat" },
+  { href: "/reading/", label: "Skaitymas", icon: "bookOpen" },
+  { href: "/wishes/", label: "Noriu", icon: "star" },
+  { href: "/shelves/", label: "Lentynos", icon: "shelf" },
+  { href: "/stats/", label: "Statistika", icon: "chart" },
+  { href: "/tools/", label: "Įrankiai", icon: "wrench" },
 ];
 const MOBILE = ["/", "/quick/", "/moves/", "/wishes/", "/tools/"];
 
@@ -37,12 +40,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto flex min-h-dvh w-full max-w-6xl">
       <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-line px-3 py-5 md:flex">
         <Link href="/" className="serif px-2 text-lg leading-tight">{APP_TITLE}</Link>
-        <nav className="mt-6 flex flex-col gap-0.5">
+        <span className="tnum mt-1 px-2 text-[11px] text-muted" title="Versija">v{VERSION}</span>
+        <nav className="mt-5 flex flex-col gap-0.5" aria-label="Pagrindinis meniu">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href}
               className={"flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[15px] " +
                 (isActive(path, n.href) ? "bg-accent-soft font-medium" : "hover:bg-accent-soft/60")}>
-              <span className="w-5 text-center">{n.icon}</span>{n.label}{n.href === "/moves/" && <LateBadge />}
+              <Icon name={n.icon} className="text-muted" />{n.label}{n.href === "/moves/" && <LateBadge />}
             </Link>
           ))}
         </nav>
@@ -51,15 +55,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 border-b border-line bg-paper/90 px-4 py-3 backdrop-blur md:hidden">
-          <Link href="/" className="serif text-base leading-tight">{APP_TITLE}</Link>
+          <Link href="/" className="serif text-base leading-tight">{APP_TITLE} <span className="tnum ml-1 text-[11px] text-muted" title="Versija">v{VERSION}</span></Link>
         </header>
         <main className="flex-1 px-4 pb-24 pt-4 md:px-8 md:pb-10 md:pt-6">{children}</main>
-        <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-card/95 backdrop-blur md:hidden"
+        <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-card/95 backdrop-blur md:hidden" aria-label="Pagrindinis meniu"
              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           {NAV.filter((n) => MOBILE.includes(n.href)).map((n) => (
             <Link key={n.href} href={n.href}
-              className={"flex flex-col items-center gap-0.5 py-2 text-[11px] " + (isActive(path, n.href) ? "text-accent font-semibold" : "text-muted")}>
-              <span className="relative text-lg leading-none">{n.icon}{n.href === "/moves/" && <span className="absolute -right-3 -top-1"><LateBadge /></span>}</span>{n.label}
+              className={"flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] " + (isActive(path, n.href) ? "text-accent font-semibold" : "text-muted")}>
+              <span className="relative"><Icon name={n.icon} size={22} />{n.href === "/moves/" && <span className="absolute -right-3 -top-1"><LateBadge /></span>}</span>{n.label}
             </Link>
           ))}
         </nav>

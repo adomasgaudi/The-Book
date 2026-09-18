@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource-variable/literata/wght.css";
 import "./globals.css";
 import { APP_TITLE } from "@/lib/domain/config";
 import { Shell } from "@/components/Shell";

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { Icon } from "./icons";
 
 export function Field({ label, children, hint, className = "" }: { label: string; children: ReactNode; hint?: string; className?: string }) {
   return (
     <label className={"block " + className}>
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-muted">{label}</span>
+      <span className="mb-1 block text-[13px] font-medium text-muted">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
     </label>
@@ -65,25 +66,43 @@ export function Empty({ children }: { children: ReactNode }) {
   return <div className="card px-4 py-10 text-center text-sm text-muted">{children}</div>;
 }
 
-export function Stat({ label, value, href, tone }: { label: string; value: ReactNode; href?: string; tone?: "warn" | "bad" | "ok" }) {
-  const body = (
-    <div className={"card px-3 py-2.5 " + (href ? "transition hover:border-line-strong" : "")}>
-      <div className={"serif text-2xl " + (tone === "warn" ? "text-warn" : tone === "bad" ? "text-bad" : tone === "ok" ? "text-ok" : "")}>{value}</div>
-      <div className="text-xs text-muted">{label}</div>
-    </div>
+/** Rodiklio eilutė: pavadinimas kairėje, skaičius dešinėje (tabuliaciniai skaitmenys), nuoroda — kur veikti. */
+export function Figure({ label, value, href, tone, hint }: { label: string; value: ReactNode; href?: string; tone?: "warn" | "bad" | "ok"; hint?: string }) {
+  const color = tone === "warn" ? "text-warn" : tone === "bad" ? "text-bad" : tone === "ok" ? "text-ok" : "";
+  const inner = (
+    <>
+      <span className="min-w-0 flex-1">
+        <span className="block">{label}</span>
+        {hint && <span className="block text-xs text-muted">{hint}</span>}
+      </span>
+      <span className={"tnum shrink-0 text-lg " + color}>{value}</span>
+      {href && <Icon name="chevronLeft" className="rotate-180 text-muted" size={16} />}
+    </>
   );
-  return href ? <Link href={href}>{body}</Link> : body;
+  const cls = "flex items-center gap-3 py-2.5 text-[15px]";
+  return href ? <Link href={href} className={cls + " -mx-2 rounded-lg px-2 hover:bg-accent-soft/60"}>{inner}</Link> : <div className={cls}>{inner}</div>;
 }
 
+/** Dialogas: Esc uždaro, fokusas į pirmą lauką, fonas neslenka. */
 export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const first = document.querySelector<HTMLElement>('[role="dialog"] input, [role="dialog"] button');
+    first?.focus();
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [open, onClose]);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-0 md:items-center md:p-6" onClick={onClose}>
-      <div className="card max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-b-none p-4 md:rounded-b-xl" onClick={(e) => e.stopPropagation()}
+      <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-card p-4 shadow-[0_12px_40px_-12px_rgba(0,0,0,.35)] md:rounded-2xl" onClick={(e) => e.stopPropagation()}
            role="dialog" aria-modal="true" aria-label={title}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg">{title}</h2>
-          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Uždaryti">✕</button>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Uždaryti"><Icon name="x" /></button>
         </div>
         {children}
       </div>

@@ -8,6 +8,7 @@ import { MoveForm } from "@/components/MoveForm";
 import { Photo, PhotoPicker } from "@/components/Photo";
 import { toast, toastError } from "@/components/Toast";
 import { Badge, Empty, Field, Modal, PageTitle } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import { needsClarification } from "@/lib/domain/catalog";
 import { useBook, useIndex } from "@/lib/repo/hooks";
 import { getRepo } from "@/lib/repo/repo";
@@ -49,7 +50,7 @@ function BookView() {
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-2 text-sm"><Link href="/" className="text-muted hover:text-ink">← Katalogas</Link></div>
+      <div className="mb-2 text-sm"><Link href="/" className="inline-flex items-center gap-1 text-muted hover:text-ink"><Icon name="chevronLeft" size={16} /> Katalogas</Link></div>
       <PageTitle title={b.pavadinimas || "(be pavadinimo)"} sub={<>{b.autorius || "(be autoriaus)"}{b.metai && <> · {b.metai}</>} · <span className="font-mono">{b.id}</span></>} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -64,25 +65,25 @@ function BookView() {
       <div className="mb-4 flex flex-wrap gap-2">
         {b.statusas !== "Pašalintas" ? (
           <>
-            <button className="btn btn-primary" onClick={() => setMove(true)}>🔁 Judėjimas</button>
-            <button className="btn" onClick={() => setEdit(true)}>✏️ Redaguoti</button>
-            <button className="btn" onClick={() => setInv(true)}>✅ Inventorizacija</button>
+            <button className="btn btn-primary" onClick={() => setMove(true)}><Icon name="repeat" /> Judėjimas</button>
+            <button className={"btn " + (edit ? "bg-accent-soft" : "")} onClick={() => setEdit((e) => !e)} aria-expanded={edit}><Icon name="pencil" /> {edit ? "Baigti redagavimą" : "Redaguoti"}</button>
+            <button className="btn" onClick={() => setInv(true)}><Icon name="clipboard" /> Inventorizacija</button>
             <button className="btn btn-ghost text-bad" onClick={() => setDel(true)}>Pašalinti</button>
           </>
         ) : (
-          <button className="btn btn-primary" disabled={busy} onClick={() => run(() => getRepo().restoreBook(b.id), "Įrašas grąžintas į katalogą")}>↩ Grąžinti įrašą</button>
+          <button className="btn btn-primary" disabled={busy} onClick={() => run(() => getRepo().restoreBook(b.id), "Įrašas grąžintas į katalogą")}><Icon name="undo" /> Grąžinti įrašą</button>
         )}
       </div>
 
       {(b.foto.length > 0 || b.statusas !== "Pašalintas") && (
         <section className="card mb-4 p-3">
-          <h2 className="mb-2 text-base">Nuotraukos</h2>
+          <h2 className="mb-2 text-lg">Nuotraukos</h2>
           <div className="flex flex-wrap gap-2">
             {b.foto.map((p) => (
               <div key={p} className="relative">
                 <Photo src={p} className="h-28 w-28 rounded-lg object-cover" alt="" />
-                <button className="absolute -right-1.5 -top-1.5 h-6 w-6 rounded-full bg-bad text-xs text-white" aria-label="Pašalinti nuotrauką"
-                  onClick={() => { if (confirm("Pašalinti nuotrauką?")) void run(() => getRepo().removeBookPhoto(b.id, p)); }}>✕</button>
+                <button className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-bad text-white" aria-label="Pašalinti nuotrauką"
+                  onClick={() => { if (confirm("Pašalinti nuotrauką?")) void run(() => getRepo().removeBookPhoto(b.id, p)); }}><Icon name="x" size={14} /></button>
               </div>
             ))}
             {b.statusas !== "Pašalintas" && (
@@ -98,17 +99,25 @@ function BookView() {
         </section>
       )}
 
-      <section className="card mb-4 p-3">
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm md:grid-cols-3">
-          {FIELDS.map(([k, g]) => g(b) ? (
-            <div key={k}><dt className="text-xs uppercase tracking-wide text-muted">{k}</dt><dd>{g(b)}</dd></div>
-          ) : null)}
-          {b.pastabos && <div className="col-span-2 md:col-span-3"><dt className="text-xs uppercase tracking-wide text-muted">Pastabos</dt><dd className="whitespace-pre-wrap">{b.pastabos}</dd></div>}
-        </dl>
-      </section>
+      {edit ? (
+        <section className="mb-4 rounded-xl bg-accent-soft/40 p-3" aria-label="Redagavimas">
+          <h2 className="mb-3 text-lg">Redaguoti {b.id}</h2>
+          <BookForm meta={idx.meta} initial={bookToForm(b)} submitLabel="Išsaugoti" busy={busy}
+            onSubmit={(v) => run(async () => { await getRepo().updateBook(b.id, v); setEdit(false); }, "Išsaugota")} />
+        </section>
+      ) : (
+        <section className="card mb-4 p-3">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[15px] md:grid-cols-3">
+            {FIELDS.map(([k, g]) => g(b) ? (
+              <div key={k} className="min-w-0"><dt className="text-[13px] text-muted">{k}</dt><dd className="break-words">{g(b)}</dd></div>
+            ) : null)}
+            {b.pastabos && <div className="col-span-2 md:col-span-3"><dt className="text-[13px] text-muted">Pastabos</dt><dd className="whitespace-pre-wrap">{b.pastabos}</dd></div>}
+          </dl>
+        </section>
+      )}
 
       <section className="card p-3">
-        <h2 className="mb-2 text-base">Judėjimai</h2>
+        <h2 className="mb-2 text-lg">Judėjimai</h2>
         {b.judejimai.length === 0 ? <p className="text-sm text-muted">Judėjimų dar nėra.</p> : (
           <ul className="divide-y divide-line text-sm">
             {b.judejimai.map((m) => (
@@ -132,11 +141,6 @@ function BookView() {
 
       <Modal open={move} onClose={() => setMove(false)} title="Registruoti judėjimą">
         <MoveForm book={b} meta={idx.meta} onDone={() => setMove(false)} />
-      </Modal>
-
-      <Modal open={edit} onClose={() => setEdit(false)} title={"Redaguoti " + b.id}>
-        <BookForm meta={idx.meta} initial={bookToForm(b)} submitLabel="Išsaugoti" busy={busy}
-          onSubmit={(v) => run(async () => { await getRepo().updateBook(b.id, v); setEdit(false); }, "Išsaugota")} />
       </Modal>
 
       <Modal open={inv} onClose={() => setInv(false)} title="Inventorizacija">

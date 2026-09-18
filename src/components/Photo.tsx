@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+
 import { useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getRepo } from "@/lib/repo/repo";
@@ -28,11 +30,11 @@ export function PhotoPicker({ files, onChange, label = "Nuotrauka", multiple = t
           <div key={u} className="relative">
             <img src={u} alt="" className="h-20 w-20 rounded-lg object-cover" />
             <button type="button" onClick={() => onChange(files.filter((_, k) => k !== i))}
-              className="absolute -right-1.5 -top-1.5 h-6 w-6 rounded-full bg-bad text-xs text-white" aria-label="Pašalinti">✕</button>
+              className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-bad text-white" aria-label="Pašalinti"><Icon name="x" size={14} /></button>
           </div>
         ))}
         <label className="btn cursor-pointer">
-          📷 {label}
+          <Icon name="camera" /> {label}
           <input type="file" accept="image/*" capture="environment" multiple={multiple} className="hidden"
             onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) onChange(multiple ? [...files, ...f] : f); e.target.value = ""; }} />
         </label>

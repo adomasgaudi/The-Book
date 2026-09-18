@@ -8,9 +8,9 @@
   --muted: #7b7268;
   --line: #e4dccd;
   --line-strong: #cfc4b0;
-  --accent: #8a4b2c;
+  --accent: #6e4630;
   --accent-ink: #ffffff;
-  --accent-soft: #f2e4d8;
+  --accent-soft: #efe4d9;
   --ok: #3f7d4e;
   --ok-soft: #e3f0e5;
   --warn: #a8731a;
@@ -64,7 +64,7 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  --font-serif: "Literata Variable", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
 }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -75,12 +75,24 @@ body {
   min-height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom);
 }
-h1, h2, h3, .serif { font-family: var(--font-serif); letter-spacing: -0.01em; }
+h1, h2, h3, .serif { font-family: var(--font-serif); letter-spacing: -0.01em; text-wrap: balance; }
+h1 { font-weight: 500; }
+h2, h3 { font-weight: 500; }
+
+/* Naršyklės paviršiai — pažymėjimas, žymeklis, fokusas, skaičiai, pabraukimas */
+::selection { background: var(--accent-soft); color: var(--ink); }
+:root { caret-color: var(--accent); accent-color: var(--accent); }
+a { text-underline-offset: 0.15em; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.input:focus-visible { outline: none; }
+.tnum { font-variant-numeric: tabular-nums; }
+table { font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { *, ::before, ::after { transition: none !important; animation: none !important; } }
 
 /* Formos elementai */
 .input {
-  @apply w-full rounded-lg border border-line bg-card px-3 py-2 text-[15px] text-ink outline-none;
-  min-height: 42px;
+  @apply w-full rounded-lg border border-line bg-card px-3 py-2 text-[16px] text-ink outline-none;
+  min-height: 44px;
 }
 .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .input::placeholder { color: var(--muted); opacity: .8; }
@@ -89,7 +101,7 @@ textarea.input { min-height: 84px; }
 
 .btn {
   @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-card px-3.5 py-2 text-[15px] font-medium text-ink select-none;
-  min-height: 42px;
+  min-height: 44px;
   transition: background .12s, border-color .12s, transform .05s;
 }
 .btn:hover { border-color: var(--line-strong); }
@@ -100,23 +112,25 @@ textarea.input { min-height: 84px; }
 .btn-ghost { background: transparent; border-color: transparent; }
 .btn-ghost:hover { background: var(--accent-soft); border-color: transparent; }
 .btn-danger { color: var(--bad); border-color: var(--bad-soft); background: var(--bad-soft); }
-.btn-sm { @apply px-2.5 py-1 text-sm; min-height: 32px; }
+.btn-sm { @apply px-2.5 py-1 text-sm; min-height: 36px; }
 
 .card { @apply rounded-xl border border-line bg-card; }
 
 .chip {
   @apply inline-flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1 text-sm text-ink whitespace-nowrap;
-  min-height: 32px;
+  min-height: 36px;
 }
 .chip[data-on="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
 .badge { @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap; }
 
-.row-link { @apply block px-3 py-2.5 transition-colors; }
+.row-link { @apply block px-3 py-3 transition-colors; }
 .row-link:hover { background: var(--accent-soft); }
 
-/* Tailwind v4 nebeturi prose; paprastas skirtukas */
 .hr { border-top: 1px solid var(--line); }
+/* Skyriaus antraštė: daugiau erdvės virš nei po ja */
+.section-title { @apply mb-2 mt-1 text-base; }
+.section + .section { @apply mt-6; }
 
 ::-webkit-scrollbar { height: 6px; width: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }

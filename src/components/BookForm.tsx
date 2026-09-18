@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+
 import { useState } from "react";
 import { BUKLES } from "@/lib/domain/config";
 import type { IndexMeta } from "@/lib/domain/catalog";
@@ -50,7 +52,7 @@ export function BookForm({ meta, initial, onSubmit, submitLabel, busy, children 
       <Field label="ISBN" className="col-span-2 md:col-span-3">
         <div className="flex gap-2">
           {inp("isbn", { inputMode: "numeric", placeholder: "9786090…" })}
-          <button type="button" className="btn shrink-0" onClick={isbn} disabled={looking || !v.isbn}>{looking ? "Ieškau…" : "🔍 Pagal ISBN"}</button>
+          <button type="button" className="btn shrink-0" onClick={isbn} disabled={looking || !v.isbn}>{looking ? "Ieškau…" : <><Icon name="search" /> Pagal ISBN</>}</button>
         </div>
       </Field>
       <Field label="Autorius" className="col-span-2 md:col-span-1">{inp("autorius", { autoFocus: !initial })}</Field>

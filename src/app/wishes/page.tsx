@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+
 import { useState } from "react";
 import { WISH_PRIORITIES, WISH_STATUSES } from "@/lib/domain/config";
 import type { Wish } from "@/lib/domain/types";
@@ -40,7 +42,7 @@ export default function WishesPage() {
 
   return (
     <div>
-      <PageTitle title="Noriu" sub="Knygos, kurias norėtume įsigyti." right={<button className="btn btn-primary" onClick={() => setOpen(true)}>＋ Pridėti</button>} />
+      <PageTitle title="Noriu" sub="Knygos, kurias norėtume įsigyti." right={<button className="btn btn-primary" onClick={() => setOpen(true)}><Icon name="plus" /> Pridėti</button>} />
       <div className="mb-3 flex gap-1.5">{WISH_STATUSES.map((s) => <button key={s} className="chip" data-on={tab === s} onClick={() => setTab(s)}>{s} · {(wishes ?? []).filter((x) => x.statusas === s).length}</button>)}</div>
       {!wishes ? <div className="text-muted">Kraunama…</div> : list.length === 0 ? <Empty>Sąrašas tuščias.</Empty> : (
         <div className="card divide-y divide-line">
@@ -69,7 +71,7 @@ export default function WishesPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Noriu knygos">
         <form onSubmit={save} className="grid grid-cols-2 gap-3">
-          <Field label="ISBN" className="col-span-2"><div className="flex gap-2"><input className="input" inputMode="numeric" value={w.isbn ?? ""} onChange={(e) => set("isbn")(e.target.value)} /><button type="button" className="btn shrink-0" onClick={isbn} disabled={!w.isbn}>🔍</button></div></Field>
+          <Field label="ISBN" className="col-span-2"><div className="flex gap-2"><input className="input" inputMode="numeric" value={w.isbn ?? ""} onChange={(e) => set("isbn")(e.target.value)} /><button type="button" className="btn shrink-0" onClick={isbn} disabled={!w.isbn} aria-label="Ieškoti pagal ISBN"><Icon name="search" /></button></div></Field>
           <Field label="Autorius" className="col-span-2"><input className="input" value={w.autorius ?? ""} onChange={(e) => set("autorius")(e.target.value)} /></Field>
           <Field label="Pavadinimas" className="col-span-2"><input className="input" value={w.pavadinimas ?? ""} onChange={(e) => set("pavadinimas")(e.target.value)} /></Field>
           <Field label="Teminė linija"><ComboInput listId="w-lin" value={w.linija ?? ""} onChange={set("linija")} options={idx?.meta.linijos ?? []} /></Field>

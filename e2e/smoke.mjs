@@ -111,7 +111,7 @@ await page.screenshot({ path: `${shots}/06-reading.png`, fullPage: true });
 // 11. Wishes: add + buy
 await page.goto(base + "/wishes/", { waitUntil: "networkidle" });
 results.wishesNoriu = (await text()).match(/Noriu · (\d+)/)?.[1];
-await page.getByRole("button", { name: "＋ Pridėti" }).click();
+await page.getByRole("button", { name: "Pridėti", exact: true }).click();
 await page.getByLabel("Autorius").fill("Test Autorius");
 await page.getByLabel("Pavadinimas").fill("Test Knyga");
 await page.getByRole("dialog").getByRole("button", { name: "Įrašyti" }).click();

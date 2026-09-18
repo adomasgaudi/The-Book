@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -47,7 +49,7 @@ export default function ShelvesPage() {
   return (
     <div>
       <PageTitle title="Lentynos" sub="Nufotografuok lentyną, suvesk jos knygas vienu kartu."
-        right={<button className={"btn " + (mode === "add" ? "" : "btn-primary")} onClick={() => setMode(mode === "add" ? "list" : "add")}>{mode === "add" ? "← Sąrašas" : "＋ Nuskaityti lentyną"}</button>} />
+        right={<button className={"btn " + (mode === "add" ? "" : "btn-primary")} onClick={() => setMode(mode === "add" ? "list" : "add")}>{mode === "add" ? <><Icon name="chevronLeft" /> Sąrašas</> : <><Icon name="plus" /> Nuskaityti lentyną</>}</button>} />
 
       {mode === "add" && idx && (
         <form onSubmit={submit} className="card mb-4 grid grid-cols-2 gap-3 p-3 md:grid-cols-4">
@@ -58,8 +60,8 @@ export default function ShelvesPage() {
           <div className="col-span-2 md:col-span-4"><PhotoPicker files={photos} onChange={setPhotos} label="Lentynos nuotraukos" /></div>
 
           <div className="col-span-2 md:col-span-4">
-            <div className="mb-1 flex items-center justify-between"><span className="text-xs font-medium uppercase tracking-wide text-muted">Knygos ({filled.length})</span>
-              <button type="button" className="btn btn-sm" onClick={() => setRows((r) => [...r, { ...EMPTY_ROW }, { ...EMPTY_ROW }, { ...EMPTY_ROW }])}>＋ 3 eilutės</button></div>
+            <div className="mb-1 flex items-center justify-between"><span className="text-[13px] font-medium text-muted">Knygos ({filled.length})</span>
+              <button type="button" className="btn btn-sm" onClick={() => setRows((r) => [...r, { ...EMPTY_ROW }, { ...EMPTY_ROW }, { ...EMPTY_ROW }])}><Icon name="plus" size={16} /> 3 eilutės</button></div>
             <div className="grid gap-2">
               {rows.map((r, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr] gap-1.5 rounded-lg border border-line p-2 md:grid-cols-[1.2fr_1.6fr_.5fr_.8fr_1fr_1fr_auto]">

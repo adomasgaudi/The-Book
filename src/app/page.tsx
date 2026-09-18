@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
@@ -43,7 +45,7 @@ function Catalog() {
   return (
     <div>
       <PageTitle title="Katalogas" sub={<>{idx.meta.viso} įrašai{rows.length !== idx.meta.viso && <> · rodoma {rows.length}</>}</>}
-        right={<Link href="/add/" className="btn btn-primary">＋ Pridėti knygą</Link>} />
+        right={<Link href="/add/" className="btn btn-primary"><Icon name="plus" /> Pridėti knygą</Link>} />
 
       <div className="sticky top-[53px] z-10 -mx-4 bg-paper/95 px-4 pb-2 pt-1 backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0">
         <div className="flex gap-2">
@@ -59,7 +61,7 @@ function Catalog() {
           ))}
         </div>
         {more && (
-          <div className="card mt-2 grid grid-cols-2 gap-2 p-3 md:grid-cols-4">
+          <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-accent-soft/50 p-3 md:grid-cols-4">
             <Select value={f.patalpa ?? ""} onChange={set("patalpa")} options={idx.meta.patalpos} allLabel="Patalpa: visos" />
             <input className="input" placeholder="Lentyna" value={f.lentyna ?? ""} onChange={(e) => set("lentyna")(e.target.value)} />
             <Select value={f.linija ?? ""} onChange={set("linija")} options={idx.meta.linijos} allLabel="Teminė linija: visos" />
@@ -115,7 +117,7 @@ function BookRow({ r }: { r: IndexRow }) {
           {r.statusas !== "Lentynoje" && <Badge>{r.statusas}</Badge>}
           {r.laikytojas && <span className="text-xs text-muted">{r.laikytojas}</span>}
           {r.reikiaPatikslinti && <Badge tone="Paskolinta">patikslinti</Badge>}
-          {r.turiFoto && <span className="text-xs" title="Yra nuotrauka">📷</span>}
+          {r.turiFoto && <Icon name="camera" size={16} className="text-muted" aria-label="Yra nuotrauka" />}
         </div>
       </div>
     </Link>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+
 import Link from "next/link";
 import { useState } from "react";
 import { PATALPOS, SKAITYTOJAI } from "@/lib/domain/config";
@@ -10,7 +12,7 @@ import { useDeleted, useInventory, useLog, useSettings } from "@/lib/repo/hooks"
 import { getRepo, type Backup } from "@/lib/repo/repo";
 import { seedDemo } from "@/lib/repo/seed";
 import { toast, toastError } from "@/components/Toast";
-import { Badge, Empty, Field, PageTitle, bookHref } from "@/components/ui";
+import { Badge, Field, PageTitle, bookHref } from "@/components/ui";
 
 function download(name: string, content: string, type: string) {
   const a = document.createElement("a");
@@ -23,7 +25,7 @@ function readText(f: File): Promise<string> {
 }
 
 function Section({ title, children, sub }: { title: string; sub?: string; children: React.ReactNode }) {
-  return <section className="card mb-3 p-3"><h2 className="text-base">{title}</h2>{sub && <p className="mb-2 text-sm text-muted">{sub}</p>}<div className="mt-2">{children}</div></section>;
+  return <section className="section border-t border-line pt-4 first:border-t-0 first:pt-0"><h2 className="text-lg">{title}</h2>{sub && <p className="mt-0.5 max-w-prose text-sm text-muted">{sub}</p>}<div className="mt-3">{children}</div></section>;
 }
 
 export default function ToolsPage() {
@@ -60,15 +62,15 @@ export default function ToolsPage() {
 
       <Section title="Atsarginė kopija" sub="Duomenys gyvena šiame įrenginyje (naršyklės saugykloje). Eksportuok reguliariai ir perkelk į kitą įrenginį įkeldamas.">
         <div className="flex flex-wrap gap-2">
-          <button className="btn btn-primary" disabled={busy} onClick={() => run(async () => { const b = await getRepo().exportBackup(true); download(`biblioteka_${todayStr()}.json`, JSON.stringify(b), "application/json"); })}>⬇ Eksportuoti (su nuotraukomis)</button>
-          <button className="btn" disabled={busy} onClick={() => run(async () => { const b = await getRepo().exportBackup(false); download(`biblioteka_${todayStr()}_be_foto.json`, JSON.stringify(b), "application/json"); })}>⬇ Be nuotraukų</button>
-          <button className="btn" disabled={busy} onClick={() => run(async () => download(`katalogas_${todayStr()}.csv`, booksToCsv(await getRepo().allBooks()), "text/csv"))}>⬇ Katalogas CSV</button>
-          <label className="btn cursor-pointer">⬆ Įkelti kopiją (pakeisti viską)
+          <button className="btn btn-primary" disabled={busy} onClick={() => run(async () => { const b = await getRepo().exportBackup(true); download(`biblioteka_${todayStr()}.json`, JSON.stringify(b), "application/json"); })}><Icon name="download" /> Eksportuoti (su nuotraukomis)</button>
+          <button className="btn" disabled={busy} onClick={() => run(async () => { const b = await getRepo().exportBackup(false); download(`biblioteka_${todayStr()}_be_foto.json`, JSON.stringify(b), "application/json"); })}><Icon name="download" /> Be nuotraukų</button>
+          <button className="btn" disabled={busy} onClick={() => run(async () => download(`katalogas_${todayStr()}.csv`, booksToCsv(await getRepo().allBooks()), "text/csv"))}><Icon name="download" /> Katalogas CSV</button>
+          <label className="btn cursor-pointer"><Icon name="upload" /> Įkelti kopiją (pakeisti viską)
             <input type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
               if (!confirm("Visi dabartiniai duomenys šiame įrenginyje bus pakeisti kopijos duomenimis. Tęsti?")) return;
               void run(async () => { const r = await getRepo().importBackup(JSON.parse(await readText(f)) as Backup, "replace"); toast(`Įkelta: ${r.books} knygos, ${r.photos} nuotraukos`); }); }} />
           </label>
-          <label className="btn cursor-pointer">⬆ Sulieti su esamais
+          <label className="btn cursor-pointer"><Icon name="upload" /> Sulieti su esamais
             <input type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
               void run(async () => { const r = await getRepo().importBackup(JSON.parse(await readText(f)) as Backup, "merge"); toast(`Sulieta: ${r.books} knygos, ${r.photos} nuotraukos`); }); }} />
           </label>
@@ -76,7 +78,7 @@ export default function ToolsPage() {
       </Section>
 
       <Section title="Importuoti knygas iš CSV" sub="Antraštinė eilutė privaloma, tvarka nesvarbi: Patalpa, Lentyna, Autorius, Pavadinimas, Metai, Leidykla, ISBN, Kalba, Žanras, Teminė linija, Pastabos. Skirtukas „,“ arba „;“.">
-        <label className="btn btn-primary cursor-pointer">⬆ Pasirinkti CSV
+        <label className="btn btn-primary cursor-pointer"><Icon name="upload" /> Pasirinkti CSV
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
             void run(async () => { const r = await getRepo().importCsv(await readText(f), f.name);
               toast(`Įrašyta knygų: ${r.irasyta} · praleista tuščių: ${r.praleista} · lentynų paliesta: ${r.shelves.length} · ID ${r.pirmasId}–${r.paskutinisId}`); }); }} />
@@ -85,7 +87,7 @@ export default function ToolsPage() {
 
       <Section title="Dublikatų paieška ir suliejimas" sub="Naudojama po naujo lentynų nuskaitymo: randa poras tarp senų įrašų be patalpos ir naujų su patalpa (panašumas ≥ 0,62). Pažymėtos poros suliejamos: į liekantį (seną) įrašą perkeliami trūkstami laukai, naujas pažymimas „Pašalintas“.">
         <div className="flex flex-wrap gap-2">
-          <button className="btn btn-primary" disabled={busy} onClick={() => run(async () => { const d = await getRepo().findDuplicates(); setDupes(d); setPick(new Set()); toast(`Kandidatų: ${d.length}`, "info"); })}>🔎 Ieškoti</button>
+          <button className="btn btn-primary" disabled={busy} onClick={() => run(async () => { const d = await getRepo().findDuplicates(); setDupes(d); setPick(new Set()); toast(`Kandidatų: ${d.length}`, "info"); })}><Icon name="search" /> Ieškoti</button>
           {dupes && dupes.length > 0 && <>
             <button className="btn" onClick={() => setPick(new Set(dupes.map((d) => d.naujas.id)))}>Pažymėti visus</button>
             <button className="btn btn-danger" disabled={busy || pick.size === 0} onClick={() => { if (!confirm(`Sulieti ${pick.size} poras?`)) return;
@@ -115,7 +117,7 @@ export default function ToolsPage() {
             {deleted.map((b) => (
               <li key={b.id} className="flex items-center gap-2 py-1.5">
                 <div className="min-w-0 flex-1 truncate"><Link className="font-mono underline" href={bookHref(b.id)}>{b.id}</Link> {b.autorius} — {b.pavadinimas}</div>
-                <button className="btn btn-sm" disabled={busy} onClick={() => run(() => getRepo().restoreBook(b.id))}>↩ Grąžinti</button>
+                <button className="btn btn-sm" disabled={busy} onClick={() => run(() => getRepo().restoreBook(b.id))}><Icon name="undo" size={16} /> Grąžinti</button>
               </li>
             ))}
           </ul>
@@ -142,7 +144,7 @@ export default function ToolsPage() {
           <button className="btn btn-danger" disabled={busy} onClick={() => { if (confirm("Ištrinti VISUS duomenis šiame įrenginyje? Prieš tai eksportuok kopiją.")) void run(async () => { await getRepo().clearAll(); toast("Išvalyta"); }); }}>Ištrinti viską</button>
         </div>
       </Section>
-      {deleted && deleted.length === 0 && <Empty>Programa veikia be serverio: viskas išsaugoma naršyklėje, veikia ir be interneto po pirmo atidarymo.</Empty>}
+      <p className="mt-6 text-xs text-muted">Programa veikia be serverio: viskas išsaugoma naršyklėje, veikia ir be interneto po pirmo atidarymo.</p>
     </div>
   );
 }

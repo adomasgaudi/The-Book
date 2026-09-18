@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "@/components/icons";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ComboInput, bookHref } from "@/components/ui";
@@ -75,7 +77,7 @@ export default function QuickAddPage() {
           </div>
           <ComboInput listId="q-name" value={who} onChange={setName} options={idx?.meta.skaitytojai ?? []} placeholder="Tavo vardas" required />
           <div className="mt-auto flex gap-2 pt-6">
-            <button className="btn" onClick={() => setStep("shelf")} disabled={step === "saving"}>← Atgal</button>
+            <button className="btn" onClick={() => setStep("shelf")} disabled={step === "saving"}><Icon name="chevronLeft" /> Atgal</button>
             <button className="btn btn-primary flex-1 text-base" onClick={save} disabled={!who.trim() || step === "saving"}>
               {step === "saving" ? "Saugoma…" : "Išsaugoti"}
             </button>
@@ -85,15 +87,15 @@ export default function QuickAddPage() {
 
       {step === "done" && (
         <div className="flex flex-1 flex-col items-center text-center">
-          <div className="mt-6 flex h-20 w-20 items-center justify-center rounded-full bg-ok-soft text-4xl text-ok">✓</div>
+          <div className="mt-6 flex h-20 w-20 items-center justify-center rounded-full bg-ok-soft text-ok"><Icon name="check" size={40} /></div>
           <h2 className="mt-4 text-2xl">Išsaugota</h2>
           <p className="mt-1 text-sm text-muted">Knyga <span className="font-mono">{savedId}</span> įrašyta į katalogą su nuotraukomis, vardu <b>{who}</b>.</p>
           <p className="mt-4 rounded-lg bg-accent-soft px-4 py-3 text-sm">
             Jei nori, gali papildyti informaciją (autorius, pavadinimas, lentyna) — bet <b>tai nebūtina</b>. Įrašas jau yra ir bus randamas tarp „Patikslintini“.
           </p>
           <div className="mt-6 flex w-full flex-col gap-2">
-            <button className="btn btn-primary text-base" onClick={reset}>⚡ Pridėti dar vieną</button>
-            <Link href={bookHref(savedId)} className="btn">✏️ Papildyti informaciją (nebūtina)</Link>
+            <button className="btn btn-primary text-base" onClick={reset}><Icon name="bolt" /> Pridėti dar vieną</button>
+            <Link href={bookHref(savedId)} className="btn"><Icon name="pencil" /> Papildyti informaciją (nebūtina)</Link>
             <Link href="/" className="btn btn-ghost">Į katalogą</Link>
           </div>
           {count > 1 && <p className="mt-4 text-xs text-muted">Šį kartą pridėta: {count}</p>}
@@ -111,7 +113,7 @@ function StepShot({ title, hint, preview, onFile, onBack }:
       <p className="mb-4 mt-1 text-sm text-muted">{hint}</p>
       {preview && <img src={preview} alt="" className="mb-4 h-24 w-24 rounded-lg object-cover" />}
       <label className="btn btn-primary flex min-h-40 cursor-pointer flex-col gap-2 text-lg">
-        <span className="text-4xl">📷</span> Atidaryti kamerą
+        <Icon name="camera" size={40} /> Atidaryti kamerą
         <input type="file" accept="image/*" capture="environment" className="hidden" data-testid="shot"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onFile(f); }} />
       </label>
@@ -119,7 +121,7 @@ function StepShot({ title, hint, preview, onFile, onBack }:
         Pasirinkti iš galerijos
         <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onFile(f); }} />
       </label>
-      {onBack && <button className="btn btn-ghost mt-auto self-start" onClick={onBack}>← Atgal</button>}
+      {onBack && <button className="btn btn-ghost mt-auto self-start" onClick={onBack}><Icon name="chevronLeft" /> Atgal</button>}
     </div>
   );
 }

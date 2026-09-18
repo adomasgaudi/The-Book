@@ -6,9 +6,11 @@ import {
 } from "@/lib/domain/catalog";
 import { planMove, readingStats, viewMoves, type MoveFilter, type ReadingStats } from "@/lib/domain/moves";
 import { computeStats, type Stats } from "@/lib/domain/stats";
+import { importCsvBooks, type CsvImportResult } from "@/lib/domain/csv";
+import { findDuplicateCandidates, mergePairs, type DuplicateCandidate, type MergeResult } from "@/lib/domain/duplicates";
 import { mergeLists, nowStr, pad, todayStr, toNumberOrNull, trim } from "@/lib/domain/text";
 import type {
-  Book, InventoryEntry, LogEntry, MoveInput, MoveView, NewBook, Photo, Settings, Shelf, ShelfBookInput, Wish,
+  Book, InventoryEntry, LogEntry, Move, MoveInput, MoveView, NewBook, Photo, Settings, Shelf, ShelfBookInput, Wish,
 } from "@/lib/domain/types";
 
 /** Knyga su papildomais laukais, kuriuos grąžina getBook. */
@@ -356,6 +358,93 @@ export class LibraryRepo {
 
   /** Ar bent vienas įrašas patikslintinas — naudojama greitajam filtrui. */
   static needsClarification = needsClarification;
+
+  // ---------- Įrankiai: CSV importas, dublikatai, suliejimas, atsarginė kopija ----------
+
+  /** importCsvByName_ — CSV tekstas → knygos + lentynų registracija. */
+  async importCsv(text: string, name: string): Promise<Omit<CsvImportResult, "books"> & { irasyta: number }> {
+    const who = await this.me();
+    return this.db.transaction("rw", this.db.books, this.db.shelves, this.db.log, this.db.settings, async () => {
+      const r = importCsvBooks(text, await this.db.books.toArray(), who, nowStr());
+      await this.db.books.bulkAdd(r.books);
+      for (const s of r.shelves) await this.registerShelf(s.patalpa, s.lentyna, s.tema, s.kiek, [], "Importuota iš " + name, "Apdorota");
+      await this.log("Importas iš CSV", name, r.books.length + " knygos");
+      const { books, ...rest } = r;
+      return { ...rest, irasyta: books.length };
+    });
+  }
+
+  async findDuplicates(): Promise<DuplicateCandidate[]> {
+    return findDuplicateCandidates(await this.db.books.toArray());
+  }
+
+  async mergePairs(pairs: { liekantis: string; salinamas: string }[]): Promise<MergeResult> {
+    const who = await this.me();
+    return this.db.transaction("rw", this.db.books, this.db.log, this.db.settings, async () => {
+      const r = mergePairs(await this.db.books.toArray(), pairs, who, nowStr());
+      await this.db.books.bulkPut(r.updates);
+      await this.log("Suliejimas", r.report.length + " porų", r.laukai + " laukų");
+      return r;
+    });
+  }
+
+  async exportBackup(withPhotos: boolean): Promise<Backup> {
+    const [books, shelves, moves, wishes, inventory, log, settings] = await Promise.all([
+      this.db.books.toArray(), this.db.shelves.toArray(), this.db.moves.toArray(), this.db.wishes.toArray(),
+      this.db.inventory.toArray(), this.db.log.toArray(), this.db.settings.toArray(),
+    ]);
+    const b: Backup = { format: "namu-biblioteka", version: 1, exported: nowStr(), books, shelves, moves, wishes, inventory, log, settings };
+    if (withPhotos) {
+      b.photos = [];
+      for (const p of await this.db.photos.toArray())
+        b.photos.push({ id: p.id, name: p.name, mime: p.mime, createdAt: p.createdAt, data: await blobToDataUrl(p.blob) });
+    }
+    return b;
+  }
+
+  async importBackup(b: Backup, mode: "replace" | "merge"): Promise<{ books: number; photos: number }> {
+    if (b.format !== "namu-biblioteka") throw new Error("Tai ne bibliotekos atsarginė kopija.");
+    const tables = [this.db.books, this.db.shelves, this.db.moves, this.db.wishes, this.db.inventory, this.db.log, this.db.settings, this.db.photos];
+    const photoRows: Photo[] = [];
+    for (const p of b.photos ?? []) photoRows.push({ id: p.id, name: p.name, mime: p.mime, createdAt: p.createdAt, blob: await dataUrlToBlob(p.data, p.mime) });
+    const noId = <T extends { id?: number }>(rows: T[]) => rows.map(({ id: _i, ...r }) => { void _i; return r as T; });
+    await this.db.transaction("rw", tables, async () => {
+      if (mode === "replace") for (const t of tables) await t.clear();
+      await this.db.books.bulkPut(b.books ?? []);
+      await this.db.shelves.bulkPut(b.shelves ?? []);
+      await this.db.moves.bulkPut(b.moves ?? []);
+      await this.db.wishes.bulkPut(b.wishes ?? []);
+      await this.db.settings.bulkPut(b.settings ?? []);
+      if (mode === "replace") { await this.db.inventory.bulkAdd(noId(b.inventory ?? [])); await this.db.log.bulkAdd(noId(b.log ?? [])); }
+      await this.db.photos.bulkPut(photoRows);
+    });
+    await this.log("Atsarginė kopija įkelta", mode, (b.books ?? []).length + " knygos");
+    return { books: (b.books ?? []).length, photos: photoRows.length };
+  }
+
+  /** Ištrina VISUS duomenis šiame įrenginyje. */
+  async clearAll(): Promise<void> {
+    await this.db.delete();
+    await this.db.open();
+  }
+}
+
+/** Atsarginės kopijos formatas (JSON). Nuotraukos — data URL, tik jei įtrauktos. */
+export interface Backup {
+  format: "namu-biblioteka";
+  version: 1;
+  exported: string;
+  books: Book[]; shelves: Shelf[]; moves: Move[]; wishes: Wish[]; inventory: InventoryEntry[];
+  log: LogEntry[]; settings: { key: string; value: string }[];
+  photos?: { id: string; name: string; mime: string; createdAt: string; data: string }[];
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+}
+async function dataUrlToBlob(data: string, mime: string): Promise<Blob> {
+  const b = await (await fetch(data)).blob();
+  return b.type ? b : new Blob([b], { type: mime });
 }
 
 function stripUndefined<T extends object>(o: T): Partial<T> {

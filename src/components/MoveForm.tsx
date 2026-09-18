@@ -48,7 +48,11 @@ export function MoveForm({ book, meta, onDone }: { book: Book; meta: IndexMeta; 
     e.preventDefault();
     setBusy(true);
     try {
-      const r = await getRepo().recordMove({ bookId: book.id, tipas, kam, kontaktas, naujaPatalpa, naujaLentyna, naujaVieta, suma, puslapiai, grazintiIki, pastabos }, foto[0]);
+      const perkelta = tipas === "Perkelta";
+      const r = await getRepo().recordMove({
+        bookId: book.id, tipas, kam, kontaktas, suma, puslapiai, grazintiIki, pastabos,
+        naujaPatalpa: perkelta ? naujaPatalpa : "", naujaLentyna: perkelta ? naujaLentyna : "", naujaVieta: perkelta ? naujaVieta : "",
+      }, foto[0]);
       toast(`${tipas} · ${r.moveId} · statusas: ${r.statusas}`);
       onDone?.();
     } catch (err) { toastError(err); } finally { setBusy(false); }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { filterCatalog, type CatalogFilter, type IndexRow, type QuickFilter } from "@/lib/domain/catalog";
 import { useIndex } from "@/lib/repo/hooks";
 import { Badge, Empty, PageTitle, Select, bookHref } from "@/components/ui";
@@ -16,9 +17,21 @@ const QUICK: { key: QuickFilter; label: string }[] = [
 ];
 
 export default function CatalogPage() {
+  return <Suspense fallback={<div className="text-muted">Kraunama…</div>}><Catalog /></Suspense>;
+}
+
+/** Pradiniai filtrai iš URL (?patalpa=&lentyna=&quick=…) — nuorodos iš lentynų ir statistikos. */
+function useInitialFilter(): CatalogFilter {
+  const sp = useSearchParams();
+  const quick = (sp.get("quick") ?? "") as QuickFilter;
+  return { q: sp.get("q") ?? "", quick, patalpa: sp.get("patalpa") ?? "", lentyna: sp.get("lentyna") ?? "", linija: sp.get("linija") ?? "", statusas: sp.get("statusas") ?? "" };
+}
+
+function Catalog() {
   const idx = useIndex();
-  const [f, setF] = useState<CatalogFilter>({ q: "", quick: "" });
-  const [more, setMore] = useState(false);
+  const initial = useInitialFilter();
+  const [f, setF] = useState<CatalogFilter>(initial);
+  const [more, setMore] = useState(!!(initial.patalpa || initial.lentyna || initial.linija || initial.statusas));
   const [limit, setLimit] = useState(100);
 
   const rows = useMemo(() => (idx ? filterCatalog(idx.rows, f) : []), [idx, f]);

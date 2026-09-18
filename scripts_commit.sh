@@ -11,5 +11,5 @@ git commit -q -m "v$new — $1
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01URpNaESM75J54XSi8ynaog"
-for i in 1 2 3 4 5; do git push -q -u origin claude/blissful-goodall-ebccgg && break || sleep $((2**i)); done
+for i in 1 2 3 4 5; do git push -q -u origin main && break || sleep $((2**i)); done
 echo "committed v$new"

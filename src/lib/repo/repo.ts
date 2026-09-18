@@ -7,6 +7,8 @@ import {
 import { planMove, readingStats, viewMoves, type MoveFilter, type ReadingStats } from "@/lib/domain/moves";
 import { computeStats, type Stats } from "@/lib/domain/stats";
 import { importCsvBooks, type CsvImportResult } from "@/lib/domain/csv";
+import { blobToDataUrl, RemoteApi, type Snapshot } from "./remote";
+import { apiInventory, apiLog, apiMove, apiShelf, apiWish, rowToBook, rowsToBooks, type Row } from "@/lib/domain/sheets";
 import {
   isFullCatalogCsv, parseCatalog, parseInventory, parseMoves, parseSettings, parseShelves, parseWishes, sheetCsvUrl, spreadsheetIdFrom,
 } from "@/lib/domain/sheets";
@@ -49,8 +51,79 @@ export class LibraryRepo {
     };
   }
 
-  async setSetting(key: keyof Settings | "BOOTSTRAPPED" | "SHEETS_ID" | "SHEETS_CATALOG", value: string | number | string[]): Promise<void> {
+  async setSetting(key: keyof Settings | "BOOTSTRAPPED" | "SHEETS_ID" | "SHEETS_CATALOG" | "API_URL" | "API_KEY" | "LAST_SYNC" | "SYNC_ERROR", value: string | number | string[]): Promise<void> {
     await this.db.settings.put({ key, value: Array.isArray(value) ? JSON.stringify(value) : String(value) });
+  }
+
+  // ---------- Bendras serveris (Apps Script API) ----------
+
+  private remoteCache: { url: string; key: string; who: string; api: RemoteApi } | null = null;
+
+  /** Serverio klientas, jei nustatytas API_URL; kitaip null (vietinis režimas). */
+  async remote(): Promise<RemoteApi | null> {
+    const [u, k, s] = await Promise.all([this.db.settings.get("API_URL"), this.db.settings.get("API_KEY"), this.getSettings()]);
+    const url = trim(u?.value);
+    if (!url) { this.remoteCache = null; return null; }
+    const key = u ? trim(k?.value) : "", who = s.VARTOTOJAS;
+    if (!this.remoteCache || this.remoteCache.url !== url || this.remoteCache.key !== key || this.remoteCache.who !== who)
+      this.remoteCache = { url, key, who, api: new RemoteApi(url, key, who) };
+    return this.remoteCache.api;
+  }
+
+  async setRemote(url: string, key: string): Promise<void> {
+    await this.db.settings.bulkPut([{ key: "API_URL", value: trim(url) }, { key: "API_KEY", value: trim(key) }]);
+    this.remoteCache = null;
+  }
+
+  async getRemoteStatus(): Promise<{ url: string; key: string; lastSync: string; error: string }> {
+    const [u, k, t, e] = await Promise.all([this.db.settings.get("API_URL"), this.db.settings.get("API_KEY"), this.db.settings.get("LAST_SYNC"), this.db.settings.get("SYNC_ERROR")]);
+    return { url: u?.value ?? "", key: k?.value ?? "", lastSync: t?.value ?? "", error: e?.value ?? "" };
+  }
+
+  /** Patikrina serverį (ping) ir parsiunčia visus duomenis. */
+  async connectRemote(url: string, key: string): Promise<{ knygu: number }> {
+    const api = new RemoteApi(trim(url), trim(key), (await this.getSettings()).VARTOTOJAS);
+    const r = await api.call<{ knygu: number }>("ping");
+    await this.setRemote(url, key);
+    await this.syncFromServer();
+    return r;
+  }
+
+  /** Visi serverio duomenys → vietinė saugykla (pakeičia). Įrenginio nustatymai lieka. */
+  async syncFromServer(): Promise<{ knygos: number; judejimai: number; lentynos: number }> {
+    const api = await this.remote();
+    if (!api) throw new Error("Serveris nenustatytas.");
+    try {
+      const snap = await api.call<Snapshot>("snapshot");
+      const books = rowsToBooks(snap.books ?? []);
+      const moves = (snap.moves ?? []).map(apiMove), wishes = (snap.wishes ?? []).map(apiWish);
+      const shelves = [...new Map((snap.shelves ?? []).map(apiShelf).map((x) => [x.key, x])).values()];
+      const inventory = apiInventory(snap.inventory ?? []), log = apiLog(snap.log ?? []);
+      const tables = [this.db.books, this.db.shelves, this.db.moves, this.db.wishes, this.db.inventory, this.db.log, this.db.settings];
+      await this.db.transaction("rw", tables, async () => {
+        await Promise.all([this.db.books.clear(), this.db.shelves.clear(), this.db.moves.clear(), this.db.wishes.clear(), this.db.inventory.clear(), this.db.log.clear()]);
+        await this.db.books.bulkPut(books); await this.db.shelves.bulkPut(shelves); await this.db.moves.bulkPut(moves);
+        await this.db.wishes.bulkPut(wishes); await this.db.inventory.bulkAdd(inventory); await this.db.log.bulkAdd(log);
+        for (const x of snap.settings ?? []) if (["PRIMINIMAS_DIENOS", "VALIUTA"].includes(x.key)) await this.db.settings.put({ key: x.key, value: String(x.value).replace(/\.0+$/, "") });
+        await this.db.settings.bulkPut([{ key: "LAST_SYNC", value: nowStr() }, { key: "SYNC_ERROR", value: "" }, { key: "BOOTSTRAPPED", value: "remote" }]);
+      });
+      return { knygos: books.length, judejimai: moves.length, lentynos: shelves.length };
+    } catch (e) {
+      await this.db.settings.put({ key: "SYNC_ERROR", value: e instanceof Error ? e.message : String(e) });
+      throw e;
+    }
+  }
+
+  private async putBookRow(row: Row): Promise<void> { await this.db.books.put(rowToBook(row)); }
+  private async putMoves(list: Record<string, unknown>[]): Promise<void> {
+    await this.db.transaction("rw", this.db.moves, async () => { await this.db.moves.clear(); await this.db.moves.bulkPut(list.map(apiMove)); });
+  }
+  private async putWishes(list: Record<string, unknown>[]): Promise<void> {
+    await this.db.transaction("rw", this.db.wishes, async () => { await this.db.wishes.clear(); await this.db.wishes.bulkPut(list.map(apiWish)); });
+  }
+  private async putShelves(list: Record<string, unknown>[]): Promise<void> {
+    const shelves = [...new Map(list.map(apiShelf).map((x) => [x.key, x])).values()];
+    await this.db.transaction("rw", this.db.shelves, async () => { await this.db.shelves.clear(); await this.db.shelves.bulkPut(shelves); });
   }
 
   /** Įsimena, kas dirba su programa, ir prideda vardą prie skaitytojų sąrašo. */
@@ -144,6 +217,13 @@ export class LibraryRepo {
   }
 
   async updateBook(id: string, patch: Partial<Book>): Promise<BookDetail> {
+    const api = await this.remote();
+    if (api) {
+      const { id: _i, foto: _f, ...rest } = patch; void _i; void _f;
+      await this.putBookRow(await api.call<Row>("updateBook", { id, patch: rest }));
+      if (patch.patalpa) await this.rememberChoice("PATALPOS_EXTRA", patch.patalpa);
+      return this.getBook(id);
+    }
     await this.db.transaction("rw", this.db.books, this.db.log, this.db.settings, async () => {
       await this.updateBookRaw(id, patch);
     });
@@ -152,6 +232,12 @@ export class LibraryRepo {
   }
 
   async addBookPhoto(id: string, file: Blob): Promise<string> {
+    const api = await this.remote();
+    if (api) {
+      const row = await api.call<Row>("addBookPhoto", { id, dataUrl: await RemoteApi.toDataUrl(file) });
+      await this.putBookRow(row);
+      return rowToBook(row).foto.slice(-1)[0] ?? "";
+    }
     const pid = await this.savePhoto(file, "KNYGA_" + id);
     const b = await this.db.books.get(id);
     if (!b) throw new Error("Įrašas " + id + " nerastas.");
@@ -161,6 +247,8 @@ export class LibraryRepo {
   }
 
   async removeBookPhoto(id: string, pid: string): Promise<void> {
+    const api = await this.remote();
+    if (api) { await this.putBookRow(await api.call<Row>("removeBookPhoto", { id, url: pid })); return; }
     const b = await this.db.books.get(id);
     if (!b) throw new Error("Įrašas " + id + " nerastas.");
     await this.db.books.update(id, { foto: b.foto.filter((p) => p !== pid), atnaujinta: nowStr(), kasAtnaujino: await this.me() });
@@ -170,6 +258,13 @@ export class LibraryRepo {
 
   /** addBook — nauja knyga su nuotraukomis. */
   async addBook(b: NewBook, photos: Blob[] = []): Promise<{ id: string; foto: string[] }> {
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<{ id: string; foto: string[]; book: Row }>("addBook", { b: stripUndefined(b), photos: await RemoteApi.toDataUrls(photos) });
+      await this.putBookRow(r.book);
+      if (b.patalpa) await this.rememberChoice("PATALPOS_EXTRA", b.patalpa);
+      return { id: r.id, foto: r.foto };
+    }
     const who = await this.me();
     const prepared = await this.preparePhotos(photos, () => "KNYGA");
     const result = await this.db.transaction("rw", this.db.books, this.db.photos, this.db.log, this.db.settings, async () => {
@@ -196,6 +291,13 @@ export class LibraryRepo {
     if (!patalpa) throw new Error("Nenurodyta patalpa.");
     if (!lentyna) throw new Error("Nenurodytas lentynos numeris.");
     if (!knygos.length) throw new Error("Nepridėta nė vienos knygos.");
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<Record<string, unknown>>("addShelf", { p: { patalpa, lentyna, tema: p.tema, pastaba: p.pastaba, knygos, photos: await RemoteApi.toDataUrls(p.photos ?? []) } });
+      await this.syncFromServer();
+      await this.rememberChoice("PATALPOS_EXTRA", patalpa);
+      return { prideta: Number(r["pridėta"] ?? r.prideta ?? knygos.length), ids: (r.ids as string[]) ?? [], nuotraukos: (r.nuotraukos as string[]) ?? [], patalpa, lentyna };
+    }
     const who = await this.me();
     const prepared = await this.preparePhotos(p.photos ?? [], (k) => `LENTYNA_${patalpa}_${lentyna}_${k + 1}`);
     const r = await this.db.transaction("rw", this.db.books, this.db.shelves, this.db.photos, this.db.log, this.db.settings, async () => {
@@ -249,6 +351,13 @@ export class LibraryRepo {
   async markShelfPending(patalpa: string, lentyna: string, tema?: string, photos: Blob[] = [], pastaba?: string) {
     patalpa = trim(patalpa); lentyna = trim(lentyna);
     if (!patalpa || !lentyna) throw new Error("Reikia patalpos ir lentynos numerio.");
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<{ patalpa: string; lentyna: string; nuotraukos: string[] }>("markShelfPending", { patalpa, lentyna, tema, pastaba, photos: await RemoteApi.toDataUrls(photos) });
+      await this.putShelves(await api.call<Record<string, unknown>[]>("getShelves"));
+      await this.rememberChoice("PATALPOS_EXTRA", patalpa);
+      return r;
+    }
     const urls: string[] = [];
     for (const [k, f] of photos.entries()) urls.push(await this.savePhoto(f, `LENTYNA_${patalpa}_${lentyna}_${k + 1}`));
     await this.registerShelf(patalpa, lentyna, tema, 0, urls, pastaba, "Laukia apdorojimo");
@@ -261,6 +370,14 @@ export class LibraryRepo {
 
   async recordMove(p: MoveInput, foto?: Blob): Promise<{ moveId: string; foto: string; statusas: string }> {
     if (!isMoveType(p.tipas)) throw new Error("Nežinomas judėjimo tipas: " + p.tipas);
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<{ move: { moveId: string; foto: string; statusas: string }; book: Row; moves: Record<string, unknown>[] }>("recordMove", { p: { ...p, foto: foto ? await RemoteApi.toDataUrl(foto) : "" } });
+      await this.putBookRow(r.book); await this.putMoves(r.moves);
+      if (moveDef(p.tipas).skaitymas) await this.rememberChoice("SKAITYTOJAI_EXTRA", p.kam ?? "");
+      if (p.naujaPatalpa) await this.rememberChoice("PATALPOS_EXTRA", p.naujaPatalpa);
+      return r.move;
+    }
     const who = await this.me();
     const prepared = foto ? await this.preparePhoto(foto, "JUD_" + p.bookId) : null;
     const r = await this.db.transaction("rw", this.db.books, this.db.moves, this.db.photos, this.db.log, this.db.settings, async () => {
@@ -294,6 +411,12 @@ export class LibraryRepo {
   // ---------- Noriu ----------
 
   async addWish(w: Partial<Wish>, foto?: Blob): Promise<{ id: string; foto: string }> {
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<{ id: string; foto: string; wishes: Record<string, unknown>[] }>("addWish", { w: { ...w, foto: foto ? await RemoteApi.toDataUrl(foto) : "" } });
+      await this.putWishes(r.wishes);
+      return { id: r.id, foto: r.foto };
+    }
     const all = await this.db.wishes.toArray();
     let max = 0;
     for (const x of all) { const m = /^W(\d+)$/.exec(x.id); if (m) max = Math.max(max, +m[1]); }
@@ -316,12 +439,20 @@ export class LibraryRepo {
   }
 
   async setWishStatus(id: string, st: string): Promise<void> {
+    const api = await this.remote();
+    if (api) { await this.putWishes(await api.call<Record<string, unknown>[]>("setWishStatus", { id, st })); return; }
     if (!(await this.db.wishes.get(id))) throw new Error("Įrašas " + id + " nerastas.");
     await this.db.wishes.update(id, { statusas: st });
     await this.log("Noriu statusas", id, st);
   }
 
   async wishToCatalog(id: string, vieta?: string, kaina?: string): Promise<{ id: string; foto: string[] }> {
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<{ id: string; book: Row; wishes: Record<string, unknown>[] }>("wishToCatalog", { id, vieta, kaina });
+      await this.putBookRow(r.book); await this.putWishes(r.wishes);
+      return { id: r.id, foto: rowToBook(r.book).foto };
+    }
     const w = await this.db.wishes.get(id);
     if (!w) throw new Error("Nerasta.");
     const res = await this.addBook({
@@ -337,6 +468,13 @@ export class LibraryRepo {
   // ---------- Inventorizacija ----------
 
   async markInventory(bookId: string, rez: InventoryEntry["rezultatas"], pastaba?: string): Promise<void> {
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<{ book: Row; inventory: Row[] }>("markInventory", { bookId, rez, pastaba });
+      await this.putBookRow(r.book);
+      await this.db.transaction("rw", this.db.inventory, async () => { await this.db.inventory.clear(); await this.db.inventory.bulkAdd(apiInventory(r.inventory)); });
+      return;
+    }
     const b = await this.db.books.get(bookId);
     if (!b) throw new Error("Įrašas " + bookId + " nerastas.");
     await this.db.inventory.add({
@@ -362,6 +500,8 @@ export class LibraryRepo {
   // ---------- Šalinimas (grįžtamas) ----------
 
   async deleteBook(id: string, priezastis?: string): Promise<{ id: string; statusas?: string; jau?: boolean }> {
+    const api = await this.remote();
+    if (api) { await this.putBookRow(await api.call<Row>("deleteBook", { id, priezastis })); return { id, statusas: "Pašalintas" }; }
     const b = await this.db.books.get(id);
     if (!b) throw new Error("Įrašas " + id + " nerastas.");
     if (b.statusas === "Pašalintas") return { id, jau: true };
@@ -373,6 +513,8 @@ export class LibraryRepo {
   }
 
   async restoreBook(id: string): Promise<{ id: string; statusas: string }> {
+    const api = await this.remote();
+    if (api) { await this.putBookRow(await api.call<Row>("restoreBook", { id })); return { id, statusas: "Lentynoje" }; }
     await this.updateBookRaw(id, { statusas: "Lentynoje" });
     await this.log("Įrašas grąžintas", id, "");
     return { id, statusas: "Lentynoje" };
@@ -408,6 +550,12 @@ export class LibraryRepo {
   }
 
   async mergePairs(pairs: { liekantis: string; salinamas: string }[]): Promise<MergeResult> {
+    const api = await this.remote();
+    if (api) {
+      const r = await api.call<{ sulieta: number; praleista: number; laukai: number }>("mergePairs", { pairs });
+      await this.syncFromServer();
+      return { updates: [], report: pairs.slice(0, r.sulieta).map((p) => ({ liekantis: p.liekantis, salinamas: p.salinamas, laukai: [] })), praleista: r.praleista, laukai: r.laukai };
+    }
     const who = await this.me();
     return this.db.transaction("rw", this.db.books, this.db.log, this.db.settings, async () => {
       const r = mergePairs(await this.db.books.toArray(), pairs, who, nowStr());
@@ -535,9 +683,6 @@ export interface Backup {
   photos?: { id: string; name: string; mime: string; createdAt: string; data: string }[];
 }
 
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
-}
 async function dataUrlToBlob(data: string, mime: string): Promise<Blob> {
   const b = await (await fetch(data)).blob();
   return b.type ? b : new Blob([b], { type: mime });

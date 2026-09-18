@@ -9,7 +9,7 @@ import { parseCsv, detectDelimiter } from "./csv";
 import { splitList, toNumberOrNull, trim } from "./text";
 import type { Book, InventoryEntry, Move, Shelf, Wish } from "./types";
 
-type Row = Record<string, string>;
+export type Row = Record<string, string>;
 
 /** Randa antraštinę eilutę (kaip findCatalogSheet_: ieškoma pirmose 12 eilučių) ir grąžina objektų sąrašą. */
 export function tableFromCsv(text: string, required: string[], maxScan = 12): Row[] {
@@ -38,7 +38,15 @@ export const cleanNum = (v: string) => (/^-?\d+\.0+$/.test(v) ? v.replace(/\.0+$
 
 /** Katalogo lapas → Book[]. Eilutės be ID gauna naujus ID (kaip setup()). Statusas tuščias → Lentynoje. */
 export function parseCatalog(text: string): Book[] {
-  const rows = tableFromCsv(text, ["Autorius", "Pavadinimas"]);
+  return rowsToBooks(tableFromCsv(text, ["Autorius", "Pavadinimas"]));
+}
+
+/** Viena katalogo eilutė (antraštė → tekstas) → Book. ID privalo būti. */
+export function rowToBook(o: Row): Book {
+  return rowsToBooks([{ ...o, ID: o.ID || "K00000" }])[0];
+}
+
+export function rowsToBooks(rows: Row[]): Book[] {
   const books: Book[] = [];
   const known = rows.map((o) => ({ id: g(o, "ID") })).filter((b) => /^K\d+$/.test(b.id));
   let next = parseInt(nextBookId(known).slice(1), 10);
@@ -111,6 +119,51 @@ export function parseLog(text: string): { laikas: string; vartotojas: string; ve
   return tableFromCsv(text, ["Laikas", "Veiksmas"]).map((o) => ({
     laikas: g(o, "Laikas").slice(0, 16), vartotojas: g(o, "Vartotojas"), veiksmas: g(o, "Veiksmas"), objektas: g(o, "Objektas"), detales: g(o, "Detalės"),
   }));
+}
+
+/** API (getMoves) objektas → Move; laukai jau svetainės pavadinimais, tik tipai sutvarkomi. */
+export function apiMove(m: Record<string, unknown>): Move {
+  const s = (k: string) => trim(m[k]);
+  return {
+    id: s("id"), bookId: s("bookId"), autorius: s("autorius"), pavadinimas: s("pavadinimas"),
+    tipas: (isMoveType(s("tipas")) ? s("tipas") : "Perkelta") as Move["tipas"],
+    data: s("data").slice(0, 10), kam: s("kam"), kontaktas: s("kontaktas"), senaVieta: s("senaVieta"), naujaVieta: s("naujaVieta"),
+    suma: toNumberOrNull(s("suma")), puslapiai: toNumberOrNull(s("puslapiai")),
+    grazintiIki: s("grazintiIki").slice(0, 10), grazinta: s("grazinta").slice(0, 10),
+    statusas: s("statusas") === "Atvira" ? "Atvira" : "Uždaryta", foto: s("foto"), pastabos: s("pastabos"), kas: s("kas"),
+  };
+}
+
+/** API (getWishes) objektas → Wish („pridėta“ su diakritika → prideta). */
+export function apiWish(w: Record<string, unknown>): Wish {
+  const s = (k: string) => trim(w[k]);
+  return {
+    id: s("id"), autorius: s("autorius"), pavadinimas: s("pavadinimas"), isbn: s("isbn"), linija: s("linija"), saltinis: s("saltinis"),
+    kaina: s("kaina"), prioritetas: s("prioritetas") || "Vidutinis", foto: s("foto"), pastabos: s("pastabos"),
+    statusas: s("statusas") || "Noriu", prideta: (s("prideta") || s("pridėta")).slice(0, 10), kas: s("kas"),
+  };
+}
+
+/** API (getShelves) objektas → Shelf. */
+export function apiShelf(x: Record<string, unknown>): Shelf {
+  const s = (k: string) => trim(x[k]);
+  return {
+    key: shelfKey(s("patalpa"), cleanNum(s("lentyna"))), patalpa: s("patalpa"), lentyna: cleanNum(s("lentyna")), tema: s("tema"),
+    knygu: intOrNull(s("knygu")) ?? 0, statusas: s("statusas") === "Laukia apdorojimo" ? "Laukia apdorojimo" : "Apdorota",
+    nuotraukos: splitList(s("nuotraukos")), pastaba: s("pastaba"), atnaujinta: s("atnaujinta"), kas: s("kas"),
+  };
+}
+
+/** API lentelė (antraštė → tekstas) → inventorizacijos įrašai. */
+export function apiInventory(rows: Row[]): InventoryEntry[] {
+  return rows.filter((o) => g(o, "Knygos ID")).map((o) => ({
+    data: g(o, "Data").slice(0, 16), bookId: g(o, "Knygos ID"), autorius: g(o, "Autorius"), pavadinimas: g(o, "Pavadinimas"),
+    vieta: g(o, "Lentynos vieta"), rezultatas: g(o, "Rezultatas") === "Rasta" ? "Rasta" : "Nerasta", pastaba: g(o, "Pastaba"), kas: g(o, "Kas"),
+  }));
+}
+
+export function apiLog(rows: Row[]) {
+  return rows.map((o) => ({ laikas: g(o, "Laikas").slice(0, 16), vartotojas: g(o, "Vartotojas"), veiksmas: g(o, "Veiksmas"), objektas: g(o, "Objektas"), detales: g(o, "Detalės") }));
 }
 
 /** Ar CSV — pilnas katalogo lapas (su ID ir Statusas), o ne paprastas naujų knygų sąrašas. */

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_TITLE } from "@/lib/domain/config";
 import { ToastHost } from "./Toast";
-import { useMoves } from "@/lib/repo/hooks";
+import { useMoves, useRemoteStatus } from "@/lib/repo/hooks";
 import { Icon, type IconName } from "./icons";
 
 const VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "";
@@ -34,6 +34,19 @@ function LateBadge() {
   return <span className="ml-auto rounded-full bg-bad px-1.5 text-[11px] font-semibold text-white" title="Vėluoja grąžinti">{late.length}</span>;
 }
 
+/** Kur gyvena duomenys: bendras serveris (visi mato tą patį) ar tik šis įrenginys. */
+function DataStatus() {
+  const st = useRemoteStatus();
+  if (!st) return null;
+  if (st.url) return (
+    <Link href="/tools/" className="mt-auto block px-2 text-xs text-muted hover:text-ink">
+      <span className={"mr-1 inline-block h-2 w-2 rounded-full " + (st.error ? "bg-bad" : "bg-ok")} />
+      Bendri duomenys{st.lastSync && <> · {st.lastSync.slice(11)}</>}{st.error && <> · klaida</>}
+    </Link>
+  );
+  return <Link href="/tools/" className="mt-auto block px-2 text-xs text-muted hover:text-ink">Tik šis įrenginys. Bendras serveris — „Įrankiai“.</Link>;
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname() || "/";
   return (
@@ -50,7 +63,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
-        <p className="mt-auto px-2 text-xs text-muted">Duomenys saugomi šiame įrenginyje. Atsarginė kopija — „Įrankiai“.</p>
+        <DataStatus />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

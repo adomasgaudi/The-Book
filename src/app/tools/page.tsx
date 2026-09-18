@@ -8,7 +8,7 @@ import { PATALPOS, SKAITYTOJAI } from "@/lib/domain/config";
 import type { DuplicateCandidate } from "@/lib/domain/duplicates";
 import { booksToCsv } from "@/lib/domain/csv";
 import { todayStr } from "@/lib/domain/text";
-import { useDeleted, useIndex, useInventory, useLog, useSettings } from "@/lib/repo/hooks";
+import { useDeleted, useIndex, useInventory, useLog, useRemoteStatus, useSettings } from "@/lib/repo/hooks";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getRepo, type Backup } from "@/lib/repo/repo";
 import { seedDemo } from "@/lib/repo/seed";
@@ -37,6 +37,9 @@ export default function ToolsPage() {
   const inv = useInventory();
   const idx = useIndex();
   const sheets = useLiveQuery(() => getRepo().getSheetsSource(), []);
+  const remote = useRemoteStatus();
+  const [apiUrl, setApiUrl] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [sheetsUrl, setSheetsUrl] = useState("");
   const [sheetsCatalog, setSheetsCatalog] = useState("");
   const [busy, setBusy] = useState(false);
@@ -50,7 +53,30 @@ export default function ToolsPage() {
     <div className="max-w-3xl">
       <PageTitle title="Įrankiai ir nustatymai" sub={idx ? `${idx.meta.viso} knygos šiame įrenginyje` : undefined} />
 
-      <Section title="Įkelti v7 katalogą iš Google Sheets" sub="Visa skaičiuoklė, kurią naudojo v7 programėlė: katalogas, Judėjimai, Noriu, Lentynos, Inventorizacija, Nustatymai. Skaičiuoklę pirmiausia bendrink: Share → „Anyone with the link“ → Viewer. Vietiniai duomenys bus pakeisti skaičiuoklės duomenimis; nuotraukos lieka Drive nuorodomis.">
+      <Section title="Bendras serveris — visi mato ir keičia tuos pačius duomenis" sub="Programa kalba su tavo Google skaičiuokle per Apps Script (failas apps-script/Api.gs šiame repozitorijuje). Knygos, judėjimai, lentynos ir nuotraukos (Drive) saugomi ten; kiekvienas įrenginys laiko kopiją ir rodo ją be interneto.">
+        <ol className="mb-3 list-decimal space-y-1 pl-5 text-sm text-muted">
+          <li>Skaičiuoklė → Extensions → Apps Script → pridėk failą <code>Api.gs</code> (turinys — repozitorijuje <code>apps-script/Api.gs</code>).</li>
+          <li>Deploy → New deployment → Web app: <b>Execute as: Me</b>, <b>Who has access: Anyone</b>. Nukopijuok Web app URL.</li>
+          <li>Įklijuok URL čia ir spausk „Prisijungti“. Raktas — jei Script properties nustatei <code>API_KEY</code>.</li>
+        </ol>
+        <div className="grid gap-2 md:grid-cols-[1fr_12rem]">
+          <input className="input" placeholder="https://script.google.com/macros/s/…/exec" value={apiUrl ?? remote?.url ?? ""} onChange={(e) => setApiUrl(e.target.value)} autoComplete="off" />
+          <input className="input" placeholder="API raktas (nebūtina)" value={apiKey ?? remote?.key ?? ""} onChange={(e) => setApiKey(e.target.value)} autoComplete="off" />
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button className="btn btn-primary" disabled={busy || !(apiUrl ?? remote?.url)} onClick={() => run(async () => {
+            const r = await getRepo().connectRemote(apiUrl ?? remote?.url ?? "", apiKey ?? remote?.key ?? "");
+            toast(`Prisijungta: serveryje ${r.knygu} knygos — duomenys parsiųsti`);
+          })}><Icon name="repeat" /> {remote?.url ? "Išsaugoti ir sinchronizuoti" : "Prisijungti"}</button>
+          {remote?.url && <>
+            <button className="btn" disabled={busy} onClick={() => run(async () => { const r = await getRepo().syncFromServer(); toast(`Sinchronizuota: ${r.knygos} knygos, ${r.judejimai} judėjimai`); })}>Sinchronizuoti dabar</button>
+            <button className="btn btn-ghost" disabled={busy} onClick={() => { if (confirm("Atsijungti nuo bendro serverio? Duomenys liks šiame įrenginyje, bet pakeitimai nebebus siunčiami.")) void run(async () => { await getRepo().setRemote("", ""); setApiUrl(""); toast("Atsijungta — vietinis režimas"); }); }}>Atsijungti</button>
+            <span className="text-xs text-muted">{remote.error ? <span className="text-bad">Klaida: {remote.error}</span> : remote.lastSync ? `Paskutinė sinchronizacija ${remote.lastSync}` : "Dar nesinchronizuota"}</span>
+          </>}
+        </div>
+      </Section>
+
+      <Section title="Įkelti v7 katalogą iš Google Sheets (tik skaityti)" sub="Visa skaičiuoklė, kurią naudojo v7 programėlė: katalogas, Judėjimai, Noriu, Lentynos, Inventorizacija, Nustatymai. Skaičiuoklę pirmiausia bendrink: Share → „Anyone with the link“ → Viewer. Vietiniai duomenys bus pakeisti skaičiuoklės duomenimis; nuotraukos lieka Drive nuorodomis.">
         <div className="grid gap-2 md:grid-cols-[1fr_auto]">
           <input className="input" placeholder="https://docs.google.com/spreadsheets/d/…  arba skaičiuoklės ID" value={sheetsUrl || sheets?.id || ""} onChange={(e) => setSheetsUrl(e.target.value)} />
           <input className="input md:w-56" placeholder="Katalogo lapo pavadinimas (jei ne pirmas)" value={sheetsCatalog || sheets?.catalog || ""} onChange={(e) => setSheetsCatalog(e.target.value)} />

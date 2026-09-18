@@ -15,3 +15,4 @@ export function useSettings() { return useLiveQuery(() => getRepo().getSettings(
 export function useLog() { return useLiveQuery(() => getRepo().getLog(), []); }
 export function useInventory() { return useLiveQuery(() => getRepo().getInventory(), []); }
 export function useDeleted() { return useLiveQuery(() => getRepo().getDeleted(), []); }
+export function useRemoteStatus() { return useLiveQuery(() => getRepo().getRemoteStatus(), []); }

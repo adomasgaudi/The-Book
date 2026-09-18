@@ -53,6 +53,22 @@ npm run e2e        # naršyklės testas prieš out/ (reikia Chromium)
 2. Kiekvienas `push` į `main` paleidžia `.github/workflows/deploy.yml` (check → build → deploy).
 3. Svetainė: `https://<vartotojas>.github.io/<repo>/` — sub-kelias įrašomas per `NEXT_PUBLIC_BASE_PATH`.
 
+## Bendri duomenys visiems (rekomenduojama)
+
+Svetainė yra statinė, todėl bendrą duomenų bazę teikia **ta pati Google skaičiuoklė ir Drive aplankas, kuriuos naudojo v7**,
+per plonas JSON API — `apps-script/Api.gs`. Jis tik kviečia esamas `Code.gs` funkcijas (`addBook`, `recordMove`, `savePhoto_` …),
+todėl skaičiuoklė lieka vienintelis tiesos šaltinis, o nuotraukos toliau gula į Drive.
+
+1. Skaičiuoklė → Extensions → Apps Script → pridėk failą `Api.gs` (turinys iš `apps-script/Api.gs`).
+2. Deploy → New deployment → Web app: **Execute as: Me**, **Who has access: Anyone**. Nukopijuok Web app URL.
+3. Svetainėje: Įrankiai → *Bendras serveris* → įklijuok URL → „Prisijungti“. Kiekviename įrenginyje tą patį.
+4. (nebūtina) Script properties `API_KEY` — tada rašyti gali tik žinantys raktą.
+5. (nebūtina) `Code.gs` funkcijos `me_()` pradžioje pridėk `if (typeof API_WHO !== 'undefined' && API_WHO) return API_WHO;` — tada „Kas atnaujino“ rodys vardą iš svetainės.
+
+Kaip veikia: kiekvienas įrenginys laiko pilną kopiją (IndexedDB) ir rodo ją akimirksniu ir be interneto; kiekvienas pakeitimas
+pirmiausia įrašomas serveryje (write-through), o vietinė kopija atnaujinama iš serverio atsakymo; atidarius programą ar grįžus į ją
+po 3 min duomenys parsiunčiami iš naujo. Be serverio programa veikia vietiniu režimu (šis įrenginys + atsarginės kopijos).
+
 ## Pradiniai duomenys (v7 eksportas)
 
 `data/v7/` — 2026-09-18 eksportuota v7 skaičiuoklė (CSV lapai) ir programoje darytos nuotraukos.

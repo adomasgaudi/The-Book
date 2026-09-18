@@ -1,6 +1,6 @@
 {
   "name": "namu-biblioteka",
-  "version": "0.1.1",
+  "version": "8.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",

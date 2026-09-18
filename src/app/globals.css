@@ -1,26 +1,122 @@
 @import "tailwindcss";
 
+/* Šilta „popieriaus" paletė — tęsia katalogo lapo antraščių spalvą (#efece4). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f5f1e8;
+  --card: #fffdf9;
+  --ink: #2a2521;
+  --muted: #7b7268;
+  --line: #e4dccd;
+  --line-strong: #cfc4b0;
+  --accent: #8a4b2c;
+  --accent-ink: #ffffff;
+  --accent-soft: #f2e4d8;
+  --ok: #3f7d4e;
+  --ok-soft: #e3f0e5;
+  --warn: #a8731a;
+  --warn-soft: #f7ecd4;
+  --bad: #b0413e;
+  --bad-soft: #f6e1e0;
+  --info: #3e5f8a;
+  --info-soft: #e1e9f3;
+}
+
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --paper: #1b1815;
+    --card: #24201c;
+    --ink: #ece5d9;
+    --muted: #a3988a;
+    --line: #38322b;
+    --line-strong: #4d453b;
+    --accent: #d08a5f;
+    --accent-ink: #1b1815;
+    --accent-soft: #3a2b21;
+    --ok: #8fcf9d; --ok-soft: #22331f;
+    --warn: #e2b768; --warn-soft: #3a2f16;
+    --bad: #e58a86; --bad-soft: #3d2222;
+    --info: #9dbbe0; --info-soft: #1f2b3a;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1b1815; --card: #24201c; --ink: #ece5d9; --muted: #a3988a; --line: #38322b; --line-strong: #4d453b;
+  --accent: #d08a5f; --accent-ink: #1b1815; --accent-soft: #3a2b21;
+  --ok: #8fcf9d; --ok-soft: #22331f; --warn: #e2b768; --warn-soft: #3a2f16; --bad: #e58a86; --bad-soft: #3d2222;
+  --info: #9dbbe0; --info-soft: #1f2b3a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html { -webkit-text-size-adjust: 100%; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
 }
+h1, h2, h3, .serif { font-family: var(--font-serif); letter-spacing: -0.01em; }
+
+/* Formos elementai */
+.input {
+  @apply w-full rounded-lg border border-line bg-card px-3 py-2 text-[15px] text-ink outline-none;
+  min-height: 42px;
+}
+.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input::placeholder { color: var(--muted); opacity: .8; }
+select.input { appearance: auto; }
+textarea.input { min-height: 84px; }
+
+.btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-card px-3.5 py-2 text-[15px] font-medium text-ink select-none;
+  min-height: 42px;
+  transition: background .12s, border-color .12s, transform .05s;
+}
+.btn:hover { border-color: var(--line-strong); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .5; pointer-events: none; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-primary:hover { filter: brightness(1.06); border-color: var(--accent); }
+.btn-ghost { background: transparent; border-color: transparent; }
+.btn-ghost:hover { background: var(--accent-soft); border-color: transparent; }
+.btn-danger { color: var(--bad); border-color: var(--bad-soft); background: var(--bad-soft); }
+.btn-sm { @apply px-2.5 py-1 text-sm; min-height: 32px; }
+
+.card { @apply rounded-xl border border-line bg-card; }
+
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1 text-sm text-ink whitespace-nowrap;
+  min-height: 32px;
+}
+.chip[data-on="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.badge { @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap; }
+
+.row-link { @apply block px-3 py-2.5 transition-colors; }
+.row-link:hover { background: var(--accent-soft); }
+
+/* Tailwind v4 nebeturi prose; paprastas skirtukas */
+.hr { border-top: 1px solid var(--line); }
+
+::-webkit-scrollbar { height: 6px; width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; }

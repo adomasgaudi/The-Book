@@ -1,4 +1,4 @@
-import { MOVES, OPEN_MOVE_TYPES, RETURN_MOVE_TYPES } from "./config";
+import { isMoveType, moveDef, OPEN_MOVE_TYPES, RETURN_MOVE_TYPES } from "./config";
 import type { Book, Move, MoveInput, MoveView } from "./types";
 import { pad, todayStr, toNumberOrNull, trim } from "./text";
 
@@ -20,8 +20,8 @@ export interface MovePlan {
 export function planMove(
   p: MoveInput, book: Book, existing: Move[], ctx: { who: string; fotoUrl?: string; today?: string },
 ): MovePlan {
-  const def = MOVES[p.tipas];
-  if (!def) throw new Error("Nežinomas judėjimo tipas: " + p.tipas);
+  if (!isMoveType(p.tipas)) throw new Error("Nežinomas judėjimo tipas: " + p.tipas);
+  const def = moveDef(p.tipas);
   if (def.reikiaKam && !trim(p.kam)) throw new Error("Reikia nurodyti, kam knyga atiteko.");
 
   const today = ctx.today ?? todayStr();

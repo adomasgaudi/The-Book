@@ -57,6 +57,8 @@ export const MOVES = {
 
 export type MoveType = keyof typeof MOVES;
 export const MOVE_TYPES = Object.keys(MOVES) as MoveType[];
+export function moveDef(t: MoveType): MoveDef { return MOVES[t]; }
+export function isMoveType(t: unknown): t is MoveType { return typeof t === "string" && t in MOVES; }
 
 /** Judėjimai, kurie lieka „Atvira" (knyga dar negrįžo). */
 export const OPEN_MOVE_TYPES: MoveType[] = ["Paskolinta", "Išnešta", "Paėmiau skaityti"];

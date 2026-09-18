@@ -1,69 +1,110 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { filterCatalog, type CatalogFilter, type IndexRow, type QuickFilter } from "@/lib/domain/catalog";
+import { useIndex } from "@/lib/repo/hooks";
+import { Badge, Empty, PageTitle, Select, bookHref } from "@/components/ui";
+
+const QUICK: { key: QuickFilter; label: string }[] = [
+  { key: "", label: "Visos" },
+  { key: "patikslinti", label: "Patikslintini" },
+  { key: "dublikatai", label: "Dublikatai" },
+  { key: "beKainos", label: "Be kainos" },
+  { key: "beFoto", label: "Be nuotraukos" },
+  { key: "beLentFoto", label: "Be lentynos foto" },
+];
+
+export default function CatalogPage() {
+  const idx = useIndex();
+  const [f, setF] = useState<CatalogFilter>({ q: "", quick: "" });
+  const [more, setMore] = useState(false);
+  const [limit, setLimit] = useState(100);
+
+  const rows = useMemo(() => (idx ? filterCatalog(idx.rows, f) : []), [idx, f]);
+  const set = (k: keyof CatalogFilter) => (v: string) => setF((s) => ({ ...s, [k]: v }));
+  const activeFilters = (["patalpa", "lentyna", "linija", "vieta", "kalba", "zanras", "subgrupe", "statusas"] as const).filter((k) => f[k]).length;
+
+  if (!idx) return <div className="text-muted">Kraunama…</div>;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div>
+      <PageTitle title="Katalogas" sub={<>{idx.meta.viso} įrašai{rows.length !== idx.meta.viso && <> · rodoma {rows.length}</>}</>}
+        right={<Link href="/add/" className="btn btn-primary">＋ Pridėti knygą</Link>} />
+
+      <div className="sticky top-[53px] z-10 -mx-4 bg-paper/95 px-4 pb-2 pt-1 backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0">
+        <div className="flex gap-2">
+          <input className="input" placeholder="Ieškoti: autorius, pavadinimas, ID, lentyna…" value={f.q ?? ""}
+                 onChange={(e) => set("q")(e.target.value)} type="search" autoComplete="off" />
+          <button className={"btn " + (more || activeFilters ? "btn-primary" : "")} onClick={() => setMore((m) => !m)} aria-expanded={more}>
+            Filtrai{activeFilters ? ` · ${activeFilters}` : ""}
+          </button>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="-mx-4 mt-2 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0">
+          {QUICK.map((q) => (
+            <button key={q.key} className="chip" data-on={(f.quick ?? "") === q.key} onClick={() => set("quick")(q.key)}>{q.label}</button>
+          ))}
         </div>
-      </main>
+        {more && (
+          <div className="card mt-2 grid grid-cols-2 gap-2 p-3 md:grid-cols-4">
+            <Select value={f.patalpa ?? ""} onChange={set("patalpa")} options={idx.meta.patalpos} allLabel="Patalpa: visos" />
+            <input className="input" placeholder="Lentyna" value={f.lentyna ?? ""} onChange={(e) => set("lentyna")(e.target.value)} />
+            <Select value={f.linija ?? ""} onChange={set("linija")} options={idx.meta.linijos} allLabel="Teminė linija: visos" />
+            <Select value={f.vieta ?? ""} onChange={set("vieta")} options={idx.meta.vietos} allLabel="Lentynos vieta: visos" />
+            <Select value={f.kalba ?? ""} onChange={set("kalba")} options={idx.meta.kalbos} allLabel="Kalba: visos" />
+            <Select value={f.zanras ?? ""} onChange={set("zanras")} options={idx.meta.zanrai} allLabel="Žanras: visi" />
+            <Select value={f.subgrupe ?? ""} onChange={set("subgrupe")} options={idx.meta.subgrupes} allLabel="Subgrupė: visos" />
+            <Select value={f.statusas ?? ""} onChange={set("statusas")} options={idx.meta.statusai} allLabel="Statusas: visi" />
+            <button className="btn btn-ghost col-span-2 md:col-span-4" onClick={() => setF({ q: f.q, quick: f.quick })}>Išvalyti filtrus</button>
+          </div>
+        )}
+      </div>
+
+      {idx.meta.viso === 0 ? (
+        <Empty>
+          Katalogas tuščias. <Link className="text-accent underline" href="/add/">Pridėk pirmą knygą</Link>,{" "}
+          <Link className="text-accent underline" href="/shelves/">nuskaityk visą lentyną</Link> arba{" "}
+          <Link className="text-accent underline" href="/tools/">importuok CSV / atsarginę kopiją</Link>.
+        </Empty>
+      ) : rows.length === 0 ? (
+        <Empty>Pagal šiuos filtrus nieko nerasta.</Empty>
+      ) : (
+        <div className="card mt-3 divide-y divide-line overflow-hidden">
+          {rows.slice(0, limit).map((r) => <BookRow key={r.id} r={r} />)}
+          {rows.length > limit && (
+            <button className="btn btn-ghost w-full rounded-none" onClick={() => setLimit((l) => l + 200)}>Rodyti daugiau ({rows.length - limit})</button>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function BookRow({ r }: { r: IndexRow }) {
+  const vieta = [r.patalpa, r.lentyna].filter(Boolean).join(" · ") || r.vieta;
+  return (
+    <Link href={bookHref(r.id)} className="row-link">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-medium">
+            {r.pavadinimas || <span className="text-muted italic">(be pavadinimo)</span>}
+          </div>
+          <div className="truncate text-sm text-muted">
+            {r.autorius || <span className="italic">(be autoriaus)</span>}{r.metai && <> · {r.metai}</>}
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1 text-xs text-muted">
+            <span className="font-mono">{r.id}</span>
+            {vieta && <span>· {vieta}</span>}
+            {r.linija && <span>· {r.linija}</span>}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {r.statusas !== "Lentynoje" && <Badge>{r.statusas}</Badge>}
+          {r.laikytojas && <span className="text-xs text-muted">{r.laikytojas}</span>}
+          {r.reikiaPatikslinti && <Badge tone="Paskolinta">patikslinti</Badge>}
+          {r.turiFoto && <span className="text-xs" title="Yra nuotrauka">📷</span>}
+        </div>
+      </div>
+    </Link>
   );
 }

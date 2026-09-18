@@ -20,7 +20,7 @@ export function parseCsv(text: string, delimiter = ","): string[][] {
     } else cell += c;
   }
   if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
-  return rows.filter((r) => r.some((v) => v !== ""));
+  return rows;
 }
 
 /** Atspėja skirtuką (Excel lietuviškai eksportuoja su „;"). */

@@ -7,6 +7,9 @@ import {
 import { planMove, readingStats, viewMoves, type MoveFilter, type ReadingStats } from "@/lib/domain/moves";
 import { computeStats, type Stats } from "@/lib/domain/stats";
 import { importCsvBooks, type CsvImportResult } from "@/lib/domain/csv";
+import {
+  isFullCatalogCsv, parseCatalog, parseInventory, parseMoves, parseSettings, parseShelves, parseWishes, sheetCsvUrl, spreadsheetIdFrom,
+} from "@/lib/domain/sheets";
 import { findDuplicateCandidates, mergePairs, type DuplicateCandidate, type MergeResult } from "@/lib/domain/duplicates";
 import { mergeLists, nowStr, pad, todayStr, toNumberOrNull, trim } from "@/lib/domain/text";
 import type {
@@ -446,6 +449,73 @@ export class LibraryRepo {
     });
     await this.log("Atsarginė kopija įkelta", mode, (b.books ?? []).length + " knygos");
     return { books: (b.books ?? []).length, photos: photoRows.length };
+  }
+
+  /**
+   * Pilnas v7 katalogo lapo importas (su ID, Statusas, Foto…): įrašai suliejami pagal ID —
+   * esami perrašomi, nauji pridedami. Judėjimų / Noriu ir kt. neliečia.
+   */
+  async importFullCatalog(text: string, name: string): Promise<{ irasyta: number }> {
+    const books = parseCatalog(text);
+    if (!books.length) throw new Error("Lape nerasta nė vienos knygos.");
+    await this.db.transaction("rw", this.db.books, this.db.log, this.db.settings, async () => {
+      await this.db.books.bulkPut(books);
+      await this.log("Katalogo importas", name, books.length + " knygos");
+    });
+    return { irasyta: books.length };
+  }
+
+  /** CSV importas: pilnas katalogo lapas → importFullCatalog, kitaip — paprastas naujų knygų sąrašas. */
+  importAnyCsv(text: string, name: string) {
+    return isFullCatalogCsv(text) ? this.importFullCatalog(text, name).then((r) => ({ ...r, pilnas: true as const }))
+                                   : this.importCsv(text, name).then((r) => ({ ...r, pilnas: false as const }));
+  }
+
+  /**
+   * Įkelia VISĄ v7 skaičiuoklę iš Google Sheets (gviz CSV): katalogas (pirmas lapas arba nurodytas),
+   * Judėjimai, Noriu, Lentynos, Inventorizacija, Nustatymai. Pakeičia vietinius duomenis.
+   * Skaičiuoklė turi būti bendrinama „Anyone with the link – Viewer“.
+   */
+  async importFromGoogleSheets(input: string, catalogSheet = "", fetcher: typeof fetch = fetch): Promise<Record<string, number>> {
+    const id = spreadsheetIdFrom(input);
+    if (!id) throw new Error("Įklijuok skaičiuoklės nuorodą arba ID.");
+    const get = async (sheet?: string) => {
+      const r = await fetcher(sheetCsvUrl(id, sheet));
+      if (!r.ok) throw new Error(`Nepavyko nuskaityti lapo „${sheet ?? "katalogas"}“ (${r.status}). Ar skaičiuoklė bendrinama visiems, turintiems nuorodą?`);
+      const t = await r.text();
+      if (/^\s*<(!doctype|html)/i.test(t)) throw new Error("Google grąžino ne CSV — skaičiuoklė nepasiekiama be prisijungimo. Bendrink ją „Anyone with the link“.");
+      return t;
+    };
+    const books = parseCatalog(await get(catalogSheet || undefined));
+    if (!books.length) throw new Error("Katalogo lape nerasta knygų (ieškota stulpelių „Autorius“ ir „Pavadinimas“).");
+    const optional = async <T,>(sheet: string, parse: (t: string) => T[]): Promise<T[]> => {
+      try { return parse(await get(sheet)); } catch { return []; }
+    };
+    const [moves, wishes, shelves, inventory, settings] = await Promise.all([
+      optional("Judėjimai", parseMoves), optional("Noriu", parseWishes), optional("Lentynos", parseShelves),
+      optional("Inventorizacija", parseInventory), optional("Nustatymai", parseSettings),
+    ]);
+    const tables = [this.db.books, this.db.shelves, this.db.moves, this.db.wishes, this.db.inventory, this.db.log, this.db.settings];
+    await this.db.transaction("rw", tables, async () => {
+      const keep = await this.db.settings.toArray();
+      await Promise.all([this.db.books.clear(), this.db.shelves.clear(), this.db.moves.clear(), this.db.wishes.clear(), this.db.inventory.clear()]);
+      await this.db.books.bulkPut(books);
+      await this.db.shelves.bulkPut(shelves);
+      await this.db.moves.bulkPut(moves);
+      await this.db.wishes.bulkPut(wishes);
+      await this.db.inventory.bulkAdd(inventory);
+      for (const s of settings) if (["PRIMINIMAS_DIENOS", "VALIUTA"].includes(s.key)) await this.db.settings.put(s);
+      for (const k of keep) if (!(await this.db.settings.get(k.key))) await this.db.settings.put(k);
+      await this.db.settings.put({ key: "SHEETS_ID", value: id });
+      if (catalogSheet) await this.db.settings.put({ key: "SHEETS_CATALOG", value: catalogSheet });
+      await this.log("Importas iš Google Sheets", id, `${books.length} knygos, ${moves.length} judėjimai`);
+    });
+    return { knygos: books.length, judejimai: moves.length, noriu: wishes.length, lentynos: shelves.length, inventorizacija: inventory.length };
+  }
+
+  async getSheetsSource(): Promise<{ id: string; catalog: string }> {
+    const [a, b] = await Promise.all([this.db.settings.get("SHEETS_ID"), this.db.settings.get("SHEETS_CATALOG")]);
+    return { id: a?.value ?? "", catalog: b?.value ?? "" };
   }
 
   /** Ištrina VISUS duomenis šiame įrenginyje. */

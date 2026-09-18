@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { Empty, PageTitle, bookHref } from "@/components/ui";
-import { useReadingStats } from "@/lib/repo/hooks";
+import { useIndex, useReadingStats } from "@/lib/repo/hooks";
+import { EmptyCatalog } from "@/components/EmptyCatalog";
 
 const PALETTE = ["var(--accent)", "var(--info)", "var(--ok)", "var(--warn)", "var(--bad)", "#7c5cbf", "#2a9d8f", "#c06c84"];
 
 export default function ReadingPage() {
   const s = useReadingStats();
-  if (!s) return <div className="text-muted">Kraunama…</div>;
+  const idx = useIndex();
+  if (!s || !idx) return <div className="text-muted">Kraunama…</div>;
+  if (idx.meta.viso === 0) return <div><PageTitle title="Skaitymo suvestinė" /><EmptyCatalog /></div>;
   const months = Object.keys(s.menesiai).sort();
   const maxMonth = Math.max(1, ...months.map((m) => Object.values(s.menesiai[m]).reduce((a, b) => a + b, 0)));
   return (

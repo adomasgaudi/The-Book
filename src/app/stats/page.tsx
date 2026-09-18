@@ -1,6 +1,7 @@
 "use client";
 
 import { Figure, PageTitle } from "@/components/ui";
+import { EmptyCatalog } from "@/components/EmptyCatalog";
 import type { Tally } from "@/lib/domain/stats";
 import { useStats } from "@/lib/repo/hooks";
 
@@ -26,6 +27,7 @@ function Distribution({ title, items, total }: { title: string; items: Tally[]; 
 export default function StatsPage() {
   const s = useStats();
   if (!s) return <div className="text-muted">Kraunama…</div>;
+  if (s.viso === 0) return <div><PageTitle title="Statistika" /><EmptyCatalog /></div>;
   const q = (quick: string) => "/?quick=" + quick;
   const eur = (n: number) => `${n.toLocaleString("lt-LT")} ${s.valiuta}`;
   return (

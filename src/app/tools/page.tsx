@@ -8,7 +8,8 @@ import { PATALPOS, SKAITYTOJAI } from "@/lib/domain/config";
 import type { DuplicateCandidate } from "@/lib/domain/duplicates";
 import { booksToCsv } from "@/lib/domain/csv";
 import { todayStr } from "@/lib/domain/text";
-import { useDeleted, useInventory, useLog, useSettings } from "@/lib/repo/hooks";
+import { useDeleted, useIndex, useInventory, useLog, useSettings } from "@/lib/repo/hooks";
+import { useLiveQuery } from "dexie-react-hooks";
 import { getRepo, type Backup } from "@/lib/repo/repo";
 import { seedDemo } from "@/lib/repo/seed";
 import { toast, toastError } from "@/components/Toast";
@@ -33,6 +34,10 @@ export default function ToolsPage() {
   const log = useLog();
   const deleted = useDeleted();
   const inv = useInventory();
+  const idx = useIndex();
+  const sheets = useLiveQuery(() => getRepo().getSheetsSource(), []);
+  const [sheetsUrl, setSheetsUrl] = useState("");
+  const [sheetsCatalog, setSheetsCatalog] = useState("");
   const [busy, setBusy] = useState(false);
   const [dupes, setDupes] = useState<DuplicateCandidate[] | null>(null);
   const [pick, setPick] = useState<Set<string>>(new Set());
@@ -42,7 +47,25 @@ export default function ToolsPage() {
 
   return (
     <div className="max-w-3xl">
-      <PageTitle title="Įrankiai ir nustatymai" />
+      <PageTitle title="Įrankiai ir nustatymai" sub={idx ? `${idx.meta.viso} knygos šiame įrenginyje` : undefined} />
+
+      <Section title="Įkelti v7 katalogą iš Google Sheets" sub="Visa skaičiuoklė, kurią naudojo v7 programėlė: katalogas, Judėjimai, Noriu, Lentynos, Inventorizacija, Nustatymai. Skaičiuoklę pirmiausia bendrink: Share → „Anyone with the link“ → Viewer. Vietiniai duomenys bus pakeisti skaičiuoklės duomenimis; nuotraukos lieka Drive nuorodomis.">
+        <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+          <input className="input" placeholder="https://docs.google.com/spreadsheets/d/…  arba skaičiuoklės ID" value={sheetsUrl || sheets?.id || ""} onChange={(e) => setSheetsUrl(e.target.value)} />
+          <input className="input md:w-56" placeholder="Katalogo lapo pavadinimas (jei ne pirmas)" value={sheetsCatalog || sheets?.catalog || ""} onChange={(e) => setSheetsCatalog(e.target.value)} />
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button className="btn btn-primary" disabled={busy || !(sheetsUrl || sheets?.id)} onClick={() => {
+            if (idx && idx.meta.viso > 0 && !confirm("Vietiniai duomenys (knygos, judėjimai, noriu, lentynos) bus pakeisti skaičiuoklės duomenimis. Prieš tai gali eksportuoti kopiją. Tęsti?")) return;
+            void run(async () => {
+              const r = await getRepo().importFromGoogleSheets(sheetsUrl || sheets?.id || "", sheetsCatalog || sheets?.catalog || "");
+              toast(`Įkelta: ${r.knygos} knygos, ${r.judejimai} judėjimai, ${r.noriu} noriu, ${r.lentynos} lentynos, ${r.inventorizacija} inventorizacijos įrašai`);
+            });
+          }}><Icon name="download" /> {busy ? "Įkeliama…" : sheets?.id ? "Atnaujinti iš Google Sheets" : "Įkelti iš Google Sheets"}</button>
+          {sheets?.id && <span className="self-center text-xs text-muted">Šaltinis: …{sheets.id.slice(-8)}</span>}
+        </div>
+        <p className="mt-2 text-xs text-muted">Kol kas ryšys vienpusis: pakeitimai programėlėje lieka šiame įrenginyje (eksportuok CSV / kopiją). Grąžinti įrašymą į skaičiuoklę galima pridėjus Apps Script tašką — saugykla tam paruošta.</p>
+      </Section>
 
       <Section title="Nustatymai" sub="Atitinka lapą „Nustatymai“. Vartotojo vardas įrašomas prie kiekvieno pakeitimo (Kas atnaujino).">
         {s && (
@@ -77,11 +100,12 @@ export default function ToolsPage() {
         </div>
       </Section>
 
-      <Section title="Importuoti knygas iš CSV" sub="Antraštinė eilutė privaloma, tvarka nesvarbi: Patalpa, Lentyna, Autorius, Pavadinimas, Metai, Leidykla, ISBN, Kalba, Žanras, Teminė linija, Pastabos. Skirtukas „,“ arba „;“.">
+      <Section title="Importuoti iš CSV" sub="Du atvejai: (1) visas katalogo lapas, eksportuotas iš skaičiuoklės (turi stulpelius ID ir Statusas) — įrašai suliejami pagal ID; (2) paprastas naujų knygų sąrašas su stulpeliais Patalpa, Lentyna, Autorius, Pavadinimas, Metai, Leidykla, ISBN, Kalba, Žanras, Teminė linija, Pastabos. Skirtukas „,“ arba „;“.">
         <label className="btn btn-primary cursor-pointer"><Icon name="upload" /> Pasirinkti CSV
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
-            void run(async () => { const r = await getRepo().importCsv(await readText(f), f.name);
-              toast(`Įrašyta knygų: ${r.irasyta} · praleista tuščių: ${r.praleista} · lentynų paliesta: ${r.shelves.length} · ID ${r.pirmasId}–${r.paskutinisId}`); }); }} />
+            void run(async () => { const r = await getRepo().importAnyCsv(await readText(f), f.name);
+              toast(r.pilnas ? `Katalogas įkeltas: ${r.irasyta} knygos (sulieta pagal ID)`
+                             : `Įrašyta knygų: ${r.irasyta} · praleista tuščių: ${r.praleista} · lentynų paliesta: ${r.shelves.length} · ID ${r.pirmasId}–${r.paskutinisId}`); }); }} />
         </label>
       </Section>
 

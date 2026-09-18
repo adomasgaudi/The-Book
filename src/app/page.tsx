@@ -8,6 +8,7 @@ import { Suspense, useMemo, useState } from "react";
 import { filterCatalog, type CatalogFilter, type IndexRow, type QuickFilter } from "@/lib/domain/catalog";
 import { useIndex } from "@/lib/repo/hooks";
 import { Badge, Empty, PageTitle, Select, bookHref } from "@/components/ui";
+import { EmptyCatalog } from "@/components/EmptyCatalog";
 
 const QUICK: { key: QuickFilter; label: string }[] = [
   { key: "", label: "Visos" },
@@ -76,11 +77,7 @@ function Catalog() {
       </div>
 
       {idx.meta.viso === 0 ? (
-        <Empty>
-          Katalogas tuščias. <Link className="text-accent underline" href="/add/">Pridėk pirmą knygą</Link>,{" "}
-          <Link className="text-accent underline" href="/shelves/">nuskaityk visą lentyną</Link> arba{" "}
-          <Link className="text-accent underline" href="/tools/">importuok CSV / atsarginę kopiją</Link>.
-        </Empty>
+        <EmptyCatalog />
       ) : rows.length === 0 ? (
         <Empty>Pagal šiuos filtrus nieko nerasta.</Empty>
       ) : (

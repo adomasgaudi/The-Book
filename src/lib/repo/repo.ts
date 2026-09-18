@@ -50,6 +50,14 @@ export class LibraryRepo {
     await this.db.settings.put({ key, value: Array.isArray(value) ? JSON.stringify(value) : String(value) });
   }
 
+  /** Įsimena, kas dirba su programa, ir prideda vardą prie skaitytojų sąrašo. */
+  async setUser(name: string): Promise<void> {
+    name = trim(name);
+    if (!name) return;
+    await this.setSetting("VARTOTOJAS", name);
+    await this.rememberChoice("SKAITYTOJAI_EXTRA", name);
+  }
+
   /** me_() — vartotojo vardas iš nustatymų. */
   async me(): Promise<string> {
     return (await this.getSettings()).VARTOTOJAS || "nežinomas";
@@ -77,14 +85,28 @@ export class LibraryRepo {
 
   // ---------- Nuotraukos ----------
 
-  /** savePhoto_ — suspaudžia ir įrašo; grąžina nuotraukos ID. */
-  async savePhoto(file: Blob, prefix: string): Promise<string> {
+  /**
+   * Suspaudžia nuotrauką ir paruošia įrašą — BE DB. Suspaudimas (canvas) yra ne-IndexedDB
+   * asinchroninis darbas, todėl daromas prieš transakciją, kitaip Dexie transakcija užsidarytų.
+   */
+  private async preparePhoto(file: Blob, prefix: string): Promise<Photo> {
     const blob = await compressImage(file);
-    const photo: Photo = {
+    return {
       id: newPhotoId(), blob, mime: blob.type || "image/jpeg",
       name: prefix + "_" + nowStr().replace(/[^0-9]/g, "") + (blob.type === "image/png" ? ".png" : ".jpg"),
       createdAt: nowStr(),
     };
+  }
+
+  private async preparePhotos(files: Blob[], prefix: (k: number) => string): Promise<Photo[]> {
+    const out: Photo[] = [];
+    for (const [k, f] of files.entries()) out.push(await this.preparePhoto(f, prefix(k)));
+    return out;
+  }
+
+  /** savePhoto_ — suspaudžia ir įrašo; grąžina nuotraukos ID. */
+  async savePhoto(file: Blob, prefix: string): Promise<string> {
+    const photo = await this.preparePhoto(file, prefix);
     await this.db.photos.add(photo);
     return photo.id;
   }
@@ -146,11 +168,12 @@ export class LibraryRepo {
   /** addBook — nauja knyga su nuotraukomis. */
   async addBook(b: NewBook, photos: Blob[] = []): Promise<{ id: string; foto: string[] }> {
     const who = await this.me();
+    const prepared = await this.preparePhotos(photos, () => "KNYGA");
     const result = await this.db.transaction("rw", this.db.books, this.db.photos, this.db.log, this.db.settings, async () => {
       const all = await this.db.books.toArray();
       const id = nextBookId(all);
-      const foto: string[] = [];
-      for (const p of photos) foto.push(await this.savePhoto(p, "KNYGA_" + id));
+      await this.db.photos.bulkAdd(prepared);
+      const foto = prepared.map((p) => p.id);
       const book: Book = {
         ...emptyBook(id), ...stripUndefined(b),
         id, nr: nextNr(all), statusas: "Lentynoje",
@@ -171,12 +194,13 @@ export class LibraryRepo {
     if (!lentyna) throw new Error("Nenurodytas lentynos numeris.");
     if (!knygos.length) throw new Error("Nepridėta nė vienos knygos.");
     const who = await this.me();
+    const prepared = await this.preparePhotos(p.photos ?? [], (k) => `LENTYNA_${patalpa}_${lentyna}_${k + 1}`);
     const r = await this.db.transaction("rw", this.db.books, this.db.shelves, this.db.photos, this.db.log, this.db.settings, async () => {
       const all = await this.db.books.toArray();
       let maxId = parseInt(nextBookId(all).slice(1), 10) - 1;
       let maxNr = nextNr(all) - 1;
-      const shelfPhotos: string[] = [];
-      for (const [k, f] of (p.photos ?? []).entries()) shelfPhotos.push(await this.savePhoto(f, `LENTYNA_${patalpa}_${lentyna}_${k + 1}`));
+      await this.db.photos.bulkAdd(prepared);
+      const shelfPhotos = prepared.map((x) => x.id);
       const now = nowStr(), ids: string[] = [], rows: Book[] = [];
       for (const b of knygos) {
         const id = "K" + pad(++maxId, 5);
@@ -235,12 +259,14 @@ export class LibraryRepo {
   async recordMove(p: MoveInput, foto?: Blob): Promise<{ moveId: string; foto: string; statusas: string }> {
     if (!isMoveType(p.tipas)) throw new Error("Nežinomas judėjimo tipas: " + p.tipas);
     const who = await this.me();
+    const prepared = foto ? await this.preparePhoto(foto, "JUD_" + p.bookId) : null;
     const r = await this.db.transaction("rw", this.db.books, this.db.moves, this.db.photos, this.db.log, this.db.settings, async () => {
       const book = await this.db.books.get(p.bookId);
       if (!book) throw new Error("Įrašas " + p.bookId + " nerastas.");
       const existing = await this.db.moves.toArray();
       const plan = planMove(p, book, existing, { who });
-      const fotoId = foto ? await this.savePhoto(foto, "JUD_" + plan.move.id + "_" + p.bookId) : "";
+      if (prepared) await this.db.photos.add(prepared);
+      const fotoId = prepared?.id ?? "";
       plan.move.foto = fotoId;
       for (const id of plan.closeIds) await this.db.moves.update(id, { grazinta: todayStr(), statusas: "Uždaryta" });
       await this.db.moves.add(plan.move);

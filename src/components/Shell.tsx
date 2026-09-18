@@ -8,6 +8,7 @@ import { useMoves } from "@/lib/repo/hooks";
 
 const NAV = [
   { href: "/", label: "Katalogas", icon: "📚" },
+  { href: "/quick/", label: "Greitai", icon: "⚡" },
   { href: "/add/", label: "Pridėti", icon: "＋" },
   { href: "/moves/", label: "Judėjimai", icon: "🔁" },
   { href: "/reading/", label: "Skaitymas", icon: "📖" },
@@ -16,7 +17,7 @@ const NAV = [
   { href: "/stats/", label: "Statistika", icon: "📊" },
   { href: "/tools/", label: "Įrankiai", icon: "🛠️" },
 ];
-const MOBILE = ["/", "/add/", "/moves/", "/wishes/", "/tools/"];
+const MOBILE = ["/", "/quick/", "/moves/", "/wishes/", "/tools/"];
 
 function isActive(path: string, href: string) {
   if (href === "/") return path === "/" || path.startsWith("/book");

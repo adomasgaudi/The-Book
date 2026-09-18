@@ -170,6 +170,22 @@ const backup = await page.evaluate(async () => {
 });
 results.db = backup;
 
+// 15b. Greitas pridėjimas: knyga → lentyna → vardas → išsaugota
+const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR42mP8z8BQz0AEYBxVSF8FAP0eB/1Ld8ANAAAAAElFTkSuQmCC", "base64");
+await page.goto(base + "/quick/", { waitUntil: "networkidle" });
+await page.locator('[data-testid="shot"]').setInputFiles({ name: "knyga.png", mimeType: "image/png", buffer: png });
+await page.waitForSelector("text=Nufotografuok lentyną");
+await page.locator('[data-testid="shot"]').setInputFiles({ name: "lentyna.png", mimeType: "image/png", buffer: png });
+await page.waitForSelector("text=Kas pridedi?");
+await page.locator('input[list="q-name"]').fill("Adelė");
+await page.screenshot({ path: `${shots}/14-quick-name.png` });
+await page.getByRole("button", { name: "Išsaugoti" }).click();
+await page.waitForSelector("text=Išsaugota");
+await page.screenshot({ path: `${shots}/15-quick-done.png` });
+const quickId = (await text()).match(/Knyga (K\d+)/)?.[1];
+await page.goto(base + "/book/?id=" + quickId, { waitUntil: "networkidle" });
+results.quick = { id: quickId, photos: await page.locator("section img").count(), who: (await text()).includes("Adelė"), patikslinti: (await text()).includes("patikslinti") };
+
 // 16. Desktop + dark
 const d = await browser.newContext({ viewport: { width: 1280, height: 860 }, storageState: await ctx.storageState(), colorScheme: "dark" });
 const dp = await d.newPage();
@@ -183,5 +199,5 @@ console.log("errors:", errors.length ? errors : "none");
 await browser.close(); server.close();
 const expectTrue = ["bookK2Status", "bookK2AfterReturn", "bookK2Moved", "bookK2Edited", "bookK2Nerasta", "deletedListed", "deletedAfterRestore", "shelvesAfter"];
 const failed = expectTrue.filter((k) => results[k] !== true);
-if (failed.length || errors.length || results.catalogRows !== 10 || results.db.books !== 13) { console.error("E2E FAILED:", failed, errors); process.exit(1); }
+if (failed.length || errors.length || results.catalogRows !== 10 || results.db.books !== 13 || results.quick?.photos !== 2 || !results.quick?.who) { console.error("E2E FAILED:", failed, errors); process.exit(1); }
 console.log("E2E OK");

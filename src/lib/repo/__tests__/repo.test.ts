@@ -88,3 +88,23 @@ describe("LibraryRepo (IndexedDB)", () => {
     expect((await other.getShelves())).toHaveLength(1);
   });
 });
+
+describe("photos inside transactions", () => {
+  it("addBook / addShelf / recordMove store blobs and reference them", async () => {
+    const r = new LibraryRepo(new LibraryDB("test-photos-" + Date.now()));
+    const png = new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" });
+    const { id, foto } = await r.addBook({ pastabos: "PATIKSLINTI" }, [png, png]);
+    expect(foto).toHaveLength(2);
+    expect((await r.getBook(id)).foto).toEqual(foto);
+    expect(await r.getPhoto(foto[0])).toBeDefined();
+    const s = await r.addShelf({ patalpa: "F", lentyna: "1", photos: [png], knygos: [{ pavadinimas: "x" }] });
+    expect(s.nuotraukos).toHaveLength(1);
+    expect((await r.getBook(s.ids[0])).lentynosFoto).toEqual(s.nuotraukos);
+    const m = await r.recordMove({ bookId: id, tipas: "Išnešta" }, png);
+    expect(m.foto).toMatch(/^P_/);
+    expect((await r.getMoves("open"))[0].foto).toBe(m.foto);
+    // greitas pridėjimas be autoriaus/pavadinimo lieka indekse ir yra patikslintinas
+    const idx = await r.getCatalogIndex();
+    expect(idx.rows.find((x) => x.id === id)?.reikiaPatikslinti).toBe(true);
+  });
+});

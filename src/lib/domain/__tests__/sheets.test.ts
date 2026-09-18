@@ -90,3 +90,14 @@ describe("Google Sheets import into the repo (3 000 books)", () => {
     await expect(repo.importFromGoogleSheets("abcdefghijklmnopqrstuvwxyz", "", fetcher)).rejects.toThrow(/Anyone with the link/);
   });
 });
+
+describe("exporter float normalisation", () => {
+  it("cleanNum strips .0 only from integer-looking values", async () => {
+    const { cleanNum, parseLog } = await import("../sheets");
+    expect(cleanNum("1996.0")).toBe("1996"); expect(cleanNum("5.0")).toBe("5"); expect(cleanNum("12.50")).toBe("12.50");
+    expect(cleanNum("978-1.0")).toBe("978-1.0"); expect(cleanNum("")).toBe("");
+    const books = parseCatalog('Nr.,Autorius,Pavadinimas,Metai,Lentyna,ID\n1.0,A,B,1996.0,5.0,K00001\n');
+    expect(books[0]).toMatchObject({ nr: 1, metai: "1996", lentyna: "5" });
+    expect(parseLog('Laikas,Vartotojas,Veiksmas,Objektas,Detalės\n2026-09-13 10:20:51.078000,g,Redaguota,K1,x\n')[0].laikas).toBe("2026-09-13 10:20");
+  });
+});

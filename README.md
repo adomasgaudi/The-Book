@@ -53,6 +53,13 @@ npm run e2e        # naršyklės testas prieš out/ (reikia Chromium)
 2. Kiekvienas `push` į `main` paleidžia `.github/workflows/deploy.yml` (check → build → deploy).
 3. Svetainė: `https://<vartotojas>.github.io/<repo>/` — sub-kelias įrašomas per `NEXT_PUBLIC_BASE_PATH`.
 
+## Pradiniai duomenys (v7 eksportas)
+
+`data/v7/` — 2026-09-18 eksportuota v7 skaičiuoklė (CSV lapai) ir programoje darytos nuotraukos.
+`npm run data` (vykdoma automatiškai prieš `build` ir `dev`) paverčia jį į `public/data/biblioteka.json`;
+pirmą kartą atidarius programą tuščiame įrenginyje šis failas įkeliamas automatiškai (2 913 knygų, 112 lentynų, judėjimai, log).
+Atnaujinus eksportą — pakeisk CSV failus `data/v7/csv/` ir įkelk iš naujo (Įrankiai → „Atkurti v7 duomenis“).
+
 ## Duomenys ir atsarginės kopijos
 
 Duomenys gyvena naršyklės IndexedDB **tame įrenginyje**. Įrankiai → *Atsarginė kopija* eksportuoja viską (su nuotraukomis) į JSON

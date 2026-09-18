@@ -33,6 +33,8 @@ export function tableFromCsv(text: string, required: string[], maxScan = 12): Ro
 
 const g = (o: Row, k: string) => o[k] ?? "";
 const intOrNull = (v: string) => { const n = parseInt(v, 10); return Number.isNaN(n) ? null : n; };
+/** „1996.0“ → „1996“ (eksportuotojo float'ai); kiti tekstai nekeičiami. */
+export const cleanNum = (v: string) => (/^-?\d+\.0+$/.test(v) ? v.replace(/\.0+$/, "") : v);
 
 /** Katalogo lapas → Book[]. Eilutės be ID gauna naujus ID (kaip setup()). Statusas tuščias → Lentynoje. */
 export function parseCatalog(text: string): Book[] {
@@ -49,13 +51,13 @@ export function parseCatalog(text: string): Book[] {
     books.push({
       ...emptyBook(id),
       nr: intOrNull(g(o, "Nr.")), autorius: A, pavadinimas: P, originalas: g(o, "Originalo pavadinimas"),
-      kalba: g(o, "Kalba"), leidykla: g(o, "Leidykla"), metai: g(o, "Metai"), zanras: g(o, "Žanras"),
-      serija: g(o, "Serija"), puslapiai: g(o, "Puslapiai"), isbn: g(o, "ISBN"), vieta: g(o, "Lentynos vieta"),
-      pastabos: g(o, "Pastabos"), patalpa: g(o, "Patalpa"), lentyna: g(o, "Lentyna"),
+      kalba: g(o, "Kalba"), leidykla: g(o, "Leidykla"), metai: cleanNum(g(o, "Metai")), zanras: g(o, "Žanras"),
+      serija: g(o, "Serija"), puslapiai: cleanNum(g(o, "Puslapiai")), isbn: cleanNum(g(o, "ISBN")), vieta: g(o, "Lentynos vieta"),
+      pastabos: g(o, "Pastabos"), patalpa: g(o, "Patalpa"), lentyna: cleanNum(g(o, "Lentyna")),
       linija: g(o, "Teminė linija"), subgrupe: g(o, "Subgrupė"),
       statusas: st as Book["statusas"], laikytojas: g(o, "Dabartinis laikytojas"), bukle: g(o, "Būklė"),
       kaina: toNumberOrNull(g(o, "Kaina (EUR)").replace(",", ".")), isigytaData: g(o, "Įsigijimo data"),
-      isigytaKur: g(o, "Įsigijimo šaltinis"), tirazas: g(o, "Tiražas"), originaloMetai: g(o, "Originalo metai"),
+      isigytaKur: g(o, "Įsigijimo šaltinis"), tirazas: cleanNum(g(o, "Tiražas")), originaloMetai: cleanNum(g(o, "Originalo metai")),
       foto: splitList(g(o, "Foto")), atnaujinta: g(o, "Atnaujinta"), kasAtnaujino: g(o, "Kas atnaujino"),
     });
   }
@@ -86,7 +88,7 @@ export function parseWishes(text: string): Wish[] {
 
 export function parseShelves(text: string): Shelf[] {
   return tableFromCsv(text, ["Patalpa", "Lentyna"]).filter((o) => g(o, "Patalpa") || g(o, "Lentyna")).map((o) => ({
-    key: shelfKey(g(o, "Patalpa"), g(o, "Lentyna")), patalpa: g(o, "Patalpa"), lentyna: g(o, "Lentyna"),
+    key: shelfKey(g(o, "Patalpa"), cleanNum(g(o, "Lentyna"))), patalpa: g(o, "Patalpa"), lentyna: cleanNum(g(o, "Lentyna")),
     tema: g(o, "Tema"), knygu: intOrNull(g(o, "Knygų")) ?? 0,
     statusas: g(o, "Statusas") === "Laukia apdorojimo" ? "Laukia apdorojimo" : "Apdorota",
     nuotraukos: splitList(g(o, "Nuotraukos")), pastaba: g(o, "Pastaba"), atnaujinta: g(o, "Atnaujinta"), kas: g(o, "Kas"),
@@ -102,7 +104,13 @@ export function parseInventory(text: string): InventoryEntry[] {
 }
 
 export function parseSettings(text: string): { key: string; value: string }[] {
-  return tableFromCsv(text, ["Raktas", "Reikšmė"]).filter((o) => g(o, "Raktas")).map((o) => ({ key: g(o, "Raktas"), value: g(o, "Reikšmė") }));
+  return tableFromCsv(text, ["Raktas", "Reikšmė"]).filter((o) => g(o, "Raktas")).map((o) => ({ key: g(o, "Raktas"), value: cleanNum(g(o, "Reikšmė")) }));
+}
+
+export function parseLog(text: string): { laikas: string; vartotojas: string; veiksmas: string; objektas: string; detales: string }[] {
+  return tableFromCsv(text, ["Laikas", "Veiksmas"]).map((o) => ({
+    laikas: g(o, "Laikas").slice(0, 16), vartotojas: g(o, "Vartotojas"), veiksmas: g(o, "Veiksmas"), objektas: g(o, "Objektas"), detales: g(o, "Detalės"),
+  }));
 }
 
 /** Ar CSV — pilnas katalogo lapas (su ID ir Statusas), o ne paprastas naujų knygų sąrašas. */

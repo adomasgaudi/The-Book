@@ -26,8 +26,18 @@ export async function compressImage(file: Blob): Promise<Blob> {
   }
 }
 
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+/** Ne vietinė (P_…) nuotrauka: absoliutus URL arba svetainės failas (data/photos/…). */
 export function isExternalUrl(ref: string): boolean {
-  return /^https?:\/\//i.test(ref);
+  return !ref.startsWith("P_");
+}
+
+/** URL rodymui: Drive nuoroda → miniatiūra, svetainės failas → su basePath, kitaip kaip yra. */
+export function displayUrl(ref: string): string {
+  if (/drive\.google\.com/.test(ref)) return driveThumb(ref);
+  if (/^https?:\/\//i.test(ref)) return ref;
+  return `${BASE}/${ref.replace(/^\//, "")}`;
 }
 
 /** Google Drive nuoroda → miniatiūra (kaip photoList_ originale). */

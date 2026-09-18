@@ -1,0 +1,54 @@
+Laikas,Vartotojas,Veiksmas,Objektas,Detalės
+2026-09-13 10:20:51.078000,g@cool.lt,Redaguota,K01209,"{""Statusas"":""Nerasta""}"
+2026-09-13 10:20:51.287000,g@cool.lt,Inventorizacija,K01209,Nerasta
+2026-09-13 11:20:18.578000,g@cool.lt,Redaguota,K01212,"{""Statusas"":""Nerasta""}"
+2026-09-13 11:20:18.693000,g@cool.lt,Redaguota,K01212,"{""Statusas"":""Nerasta""}"
+2026-09-13 11:20:19.145000,g@cool.lt,Inventorizacija,K01212,Nerasta
+2026-09-13 11:20:19.168000,g@cool.lt,Inventorizacija,K01212,Nerasta
+2026-09-14 03:11:04.479000,g@cool.lt,Redaguota,K00007,"{""Pastabos"":""Orig. 1977; šis Bantam leidimas ~1978. Kaina ant nugarėlės $2.75"",""Metai"":"""",""Pavadinimas"":""All Things Wise and Wonderful"",""ISBN"":""0-553-11746-7"",""Įsigijimo šaltinis"":"""",""Puslapiai"":"""",""Lentynos vieta"":""Spinta A, 1 lentyna (viršutinė)"",""Kaina (EUR)"":"""",""Būklė"":"""",""Įsigijimo data"":"""",""Leidykla"":""Bantam Books"",""Originalo metai"":"""",""Autorius"":""James Herriot"",""Tiražas"":""""}"
+2026-09-16 03:03:10.244000,g@cool.lt,Importas iš CSV,Fabula_import.csv,504 knygos
+2026-09-16 03:13:40.516000,g@cool.lt,Importas iš CSV,Fabula_import_2.csv,43 knygos
+2026-09-16 07:00:41.317000,g@cool.lt,Importas iš CSV,Paupio_import_1.csv,260 knygos
+2026-09-16 07:01:48.744000,g@cool.lt,Importas iš CSV,Paupio_import_2.csv,260 knygos
+2026-09-16 07:02:13.036000,g@cool.lt,Importas iš CSV,Paupio_import_3.csv,260 knygos
+2026-09-16 07:02:47.509000,g@cool.lt,Importas iš CSV,Paupio_import_4.csv,258 knygos
+2026-09-18 02:38:32.339000,g@cool.lt,Redaguota,K01571,"{""Statusas"":""Skaitoma"",""Dabartinis laikytojas"":""zydrunas""}"
+2026-09-18 02:38:33.130000,g@cool.lt,Judėjimas: Paėmiau skaityti,K01571,zydrunas 
+2026-09-18 02:42:11.672000,g@cool.lt,Redaguota,K01571,"{""Įsigijimo šaltinis"":"""",""Puslapiai"":"""",""Tiražas"":"""",""Kaina (EUR)"":""30"",""Metai"":""2009"",""Autorius"":""Francis Mallmann"",""Lentynos vieta"":""Virtuvės spinta, 2 lentyna (kulinarija)"",""Lentyna"":""2"",""Leidykla"":""Artisan"",""Būklė"":"""",""ISBN"":""9781579653545"",""Pavadinimas"":""Seven Fires: Grilling the Argentine Way"",""Pastabos"":""Artisan"",""Patalpa"":""Paupio virtuvė"",""Originalo metai"":"""",""Įsigijimo data"":""2011-04-13""}"
+2026-09-18 02:43:06.823000,g@cool.lt,Redaguota,K01571,"{""Statusas"":""Skaitoma"",""Dabartinis laikytojas"":""zydrunas""}"
+2026-09-18 02:43:07.289000,g@cool.lt,Judėjimas: Paėmiau skaityti,K01571,zydrunas 
+2026-09-18 02:43:48.977000,g@cool.lt,Foto pridėta,K01571,Foto antraštinio: https://drive.google.com/file/d/15zpmgFiMzxUp6LWxx6Wv1_VuLhQhcIhk/view
+2026-09-18 02:44:39.341000,g@cool.lt,Redaguota,K01571,"{""Statusas"":""Lentynoje"",""Dabartinis laikytojas"":""""}"
+2026-09-18 02:44:39.595000,g@cool.lt,Judėjimas: Sugrąžinta į vietą,K01571, 
+2026-09-18 04:11:59.424000,g@cool.lt,Redaguota,K01571,"{""Puslapiai"":""278"",""Originalo metai"":"""",""Tiražas"":"""",""Lentynos vieta"":""Virtuvės spinta, 2 lentyna (kulinarija)"",""Lentyna"":""2"",""Leidykla"":""Artisan"",""Būklė"":"""",""Patalpa"":""Paupio virtuvė"",""Įsigijimo data"":""2011-04-13"",""Pavadinimas"":""Seven Fires: Grilling the Argentine Way"",""Pastabos"":""Artisan"",""Įsigijimo šaltinis"":"""",""ISBN"":""9781579653545"",""Metai"":""2009"",""Autorius"":""Francis Mallmann"",""Kaina (EUR)"":""3"
+2026-09-18 04:59:16.844000,g@cool.lt,Redaguota,K01571,"{""Statusas"":""Skaitoma"",""Dabartinis laikytojas"":""Zydrunas""}"
+2026-09-18 04:59:17.735000,g@cool.lt,Judėjimas: Paėmiau skaityti,K01571,Zydrunas 
+2026-09-18 05:00:34.608000,g@cool.lt,Redaguota,K01571,"{""Statusas"":""Skaitoma"",""Dabartinis laikytojas"":""Zydrunas""}"
+2026-09-18 05:00:34.829000,g@cool.lt,Judėjimas: Skaitau toliau,K01571,Zydrunas 
+2026-09-18 05:01:03.261000,g@cool.lt,Redaguota,K01571,"{""Statusas"":""Lentynoje"",""Dabartinis laikytojas"":""""}"
+2026-09-18 05:01:03.614000,g@cool.lt,Judėjimas: Perskaičiau,K01571,Zydrunas 
+2026-09-18 05:04:00.841000,g@cool.lt,Redaguota,K01571,"{""Statusas"":""Lentynoje"",""Dabartinis laikytojas"":""""}"
+2026-09-18 05:04:01.183000,g@cool.lt,Judėjimas: Perskaičiau,K01571, 
+2026-09-18 05:05:16.425000,g@cool.lt,Foto pridėta,K03468,Foto antraštinio: https://drive.google.com/file/d/1bYsxJHmmlCuXcog5lMQtx1YPzzKLuDYX/view
+2026-09-18 05:06:38,g@cool.lt,Redaguota,K03468,"{""Lentyna"":""2"",""Būklė"":"""",""Tiražas"":"""",""Patalpa"":""Paupio virtuvė"",""ISBN"":"""",""Autorius"":""Jamie Oliver"",""Puslapiai"":""249"",""Įsigijimo data"":""2008-04-18"",""Metai"":""1999"",""Pastabos"":""keli leidimai (Michael Joseph 1999 JK; Hyperion 2000 JAV) — pasirinktas originalus JK"",""Pavadinimas"":""The Naked Chef"",""Įsigijimo šaltinis"":"""",""Kaina (EUR)"":""21"",""Leidykla"":""Michael Joseph"",""Originalo metai"":"""",""Lentynos vie"
+2026-09-18 05:07:22.057000,g@cool.lt,Redaguota,K03468,"{""Statusas"":""Skaitoma"",""Dabartinis laikytojas"":""zydrius""}"
+2026-09-18 05:07:22.271000,g@cool.lt,Judėjimas: Paėmiau skaityti,K03468,zydrius 
+2026-09-18 05:08:04.860000,g@cool.lt,Redaguota,K03468,"{""Statusas"":""Skaitoma"",""Dabartinis laikytojas"":""zydrius""}"
+2026-09-18 05:08:05.076000,g@cool.lt,Judėjimas: Skaitau toliau,K03468,zydrius 
+2026-09-18 05:08:37.964000,g@cool.lt,Redaguota,K03468,"{""Statusas"":""Lentynoje"",""Dabartinis laikytojas"":""""}"
+2026-09-18 05:08:38.246000,g@cool.lt,Judėjimas: Sugrąžinta į vietą,K03468, 
+2026-09-18 05:13:43.223000,g@cool.lt,Pridėta knyga,K03503, — the secrets to ultimate weight loss
+2026-09-18 05:13:56.534000,g@cool.lt,Pridėta knyga,K03504, — the secrets to ultimate weight loss
+2026-09-18 05:15:05.018000,g@cool.lt,Redaguota,K03503,"{""Įsigijimo šaltinis"":"""",""Leidykla"":"""",""Puslapiai"":""295"",""Kaina (EUR)"":""10"",""Įsigijimo data"":""2020-09-18"",""Pastabos"":"""",""Metai"":"""",""Patalpa"":""Paupio virtuvė"",""ISBN"":"""",""Originalo metai"":"""",""Pavadinimas"":""the secrets to ultimate weight loss"",""Tiražas"":"""",""Būklė"":"""",""Lentynos vieta"":"""",""Autorius"":"""",""Lentyna"":""2""}"
+2026-09-18 06:22:09.238000,g@cool.lt,Redaguota,K00004,"{""Puslapiai"":"""",""Įsigijimo data"":"""",""Įsigijimo šaltinis"":"""",""Lentyna"":"""",""Originalo metai"":""1981"",""Metai"":"""",""Autorius"":""Ralph Waldo Emerson; Henry David Thoreau"",""Tiražas"":"""",""Leidykla"":""Художественная литература"",""Būklė"":"""",""Pastabos"":""Rusų k. rinktinė „Ралф Эмерсон. Эссе. Генри Торо. Уолден“ (~1986). Metus patikslinti"",""Pavadinimas"":""Эссе; Уолден, или Жизнь в лесу"",""ISBN"":"""",""Lentynos vieta"":""S"
+2026-09-18 06:22:39.836000,g@cool.lt,Redaguota,K00004,"{""Pastabos"":""Rusų k. rinktinė „Ралф Эмерсон. Эссе. Генри Торо. Уолден“ (~1986). Metus patikslinti"",""Leidykla"":""Художественная литература"",""Tiražas"":"""",""Lentyna"":"""",""Lentynos vieta"":""Spinta A, 1 lentyna (viršutinė)"",""Patalpa"":"""",""Įsigijimo šaltinis"":"""",""Autorius"":""Ralph Waldo Emerson; Henry David Thoreau"",""Kaina (EUR)"":"""",""Būklė"":"""",""Originalo metai"":""1986"",""Įsigijimo data"":"""",""Pavadinimas"":""Эссе; "
+2026-09-18 08:18:59.928000,g@cool.lt,Redaguota,K03503,"{""Statusas"":""Pašalintas"",""Dabartinis laikytojas"":"""",""Pastabos"":""PAŠALINTA 2026-09-18 (g@cool.lt) · buvusi būsena: Lentynoje""}"
+2026-09-18 08:19:00.276000,g@cool.lt,Įrašas pašalintas,K03503
+2026-09-18 08:35:16.335000,g@cool.lt,Redaguota,K03051,"{""Statusas"":""Lentynoje"",""Dabartinis laikytojas"":"""",""Lentynos vieta"":""Virtuvės spinta, 2 lentyna (kulinarija)""}"
+2026-09-18 08:35:16.678000,g@cool.lt,Judėjimas: Perkelta,K03051,"Virtuvės spinta, 2 lentyna (kulinarija) "
+2026-09-18 10:11:18.686000,g@cool.lt,Redaguota,K03051,"{""Tiražas"":"""",""ISBN"":"""",""Lentynos vieta"":"""",""Pastabos"":"""",""Būklė"":"""",""Patalpa"":""Paupio virtuvė"",""Kaina (EUR)"":""10"",""Pavadinimas"":""Vaistinė jūsų virtuvėje. 1000 naminių receptų jūsų sveikatai"",""Lentyna"":""2"",""Puslapiai"":""389"",""Įsigijimo data"":""2014-01-01"",""Leidykla"":""Alma littera"",""Autorius"":""sara altshul ir dr. pamela hops"",""Įsigijimo šaltinis"":""Tarasonių biblioteka"",""Metai"":""2013"",""Originalo metai"
+2026-09-18 10:12:43.726000,g@cool.lt,Redaguota,K03466,"{""Leidykla"":"""",""Metai"":""2013"",""Kaina (EUR)"":""10"",""Įsigijimo šaltinis"":"""",""Autorius"":""sara altshul ir dr. pamela hops"",""Pavadinimas"":""Vaistinė Jūsų virtuvėje. 1000 naminių receptų jūsų sveikatai"",""ISBN"":"""",""Originalo metai"":"""",""Tiražas"":"""",""Lentynos vieta"":"""",""Būklė"":"""",""Puslapiai"":""370"",""Pastabos"":""rastas tik pavadinimas; leidykla, metai ir ISBN nepatvirtinti"",""Patalpa"":""Paupio virtuvė"",""Lentyna"":"
+2026-09-18 10:13:59.819000,g@cool.lt,Redaguota,K01566,"{""Statusas"":""Pašalintas"",""Dabartinis laikytojas"":"""",""Pastabos"":""Antras egz. arba tas pats kaip sodininkystės kolekcijoje (Nr. 1375) | PAŠALINTA 2026-09-18 (g@cool.lt) · buvusi būsena: Lentynoje""}"
+2026-09-18 10:14:00.255000,g@cool.lt,Įrašas pašalintas,K01566
+2026-09-18 10:19:07.570000,g@cool.lt,Redaguota,K00001,"{""Statusas"":""Skaitoma"",""Dabartinis laikytojas"":""Žydrius""}"
+2026-09-18 10:19:08.262000,g@cool.lt,Judėjimas: Paėmiau skaityti,K00001,Žydrius 

@@ -19,11 +19,19 @@ const ctx = await browser.newContext({ viewport: { width: 420, height: 860 }, de
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
-page.on("console", (m) => { if (m.type() === "error") errors.push("console: " + m.text()); });
+// Drive miniatiūros (lentynų nuotraukos) be interneto neužsikrauna — tai ne programos klaida.
+page.on("console", (m) => { if (m.type() === "error" && !/ERR_TUNNEL_CONNECTION_FAILED|ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED/.test(m.text())) errors.push("console: " + m.text()); });
 const results = {};
 const text = async () => (await page.locator("main").innerText()).replace(/\s+/g, " ");
 
-// 1. seed demo data via Tools
+// 0. pirmas atidarymas: įkeliamas v7 katalogas (public/data/biblioteka.json)
+await page.goto(base + "/", { waitUntil: "networkidle" });
+await page.waitForSelector("text=/Įkeltas v7 katalogas: \\d+ knygos/", { timeout: 60000 });
+results.bootstrapRows = await page.locator("a.row-link").count();          // rodoma po 100
+results.bootstrapTotal = (await text()).match(/(\d+) įrašai/)?.[1];
+await page.screenshot({ path: `${shots}/00-catalog-v7.png` });
+
+// 1. seed demo data via Tools (papildomai prie v7 duomenų)
 await page.goto(base + "/tools/", { waitUntil: "networkidle" });
 await page.getByRole("button", { name: "Įkelti pavyzdinius duomenis" }).click();
 await page.waitForSelector("text=Įkelta pavyzdinių knygų: 10");
@@ -47,8 +55,12 @@ await page.screenshot({ path: `${shots}/03-catalog-filters.png`, fullPage: true 
 await page.goto(base + "/?patalpa=Paupio%20R%C5%ABtos&lentyna=3", { waitUntil: "networkidle" });
 results.urlFilter = await page.locator("a.row-link").count();
 
-// 4. book with loan → Grąžinta
-await page.goto(base + "/book/?id=K00002", { waitUntil: "networkidle" });
+// 4. book with loan → Grąžinta (pavyzdinė „Rožės vardas“ — ID priklauso nuo v7 duomenų)
+await page.goto(base + "/?q=Ro%C5%BE%C4%97s%20vardas%20Adomas", { waitUntil: "networkidle" });   // paieška apima ir laikytoją
+await page.locator("a.row-link").first().click();
+await page.waitForURL(/\/book\/\?id=K\d+/);
+const demoId = new URL(page.url()).searchParams.get("id");
+await page.waitForSelector("text=pas Adomas");
 results.bookK2Status = (await text()).includes("Paskolinta") && (await text()).includes("pas Adomas");
 await page.getByRole("button", { name: /Judėjimas/ }).click();
 await page.getByRole("button", { name: "Grąžinta", exact: true }).click();
@@ -91,10 +103,10 @@ await page.waitForURL(base + "/");
 await page.waitForTimeout(300);
 results.catalogAfterDelete = await page.locator("a.row-link").count();
 await page.goto(base + "/tools/", { waitUntil: "networkidle" });
-results.deletedListed = (await text()).includes("K00002");
-await page.getByRole("button", { name: /Grąžinti/ }).first().click();
+results.deletedListed = (await text()).includes(demoId);
+await page.locator("li", { hasText: demoId }).getByRole("button", { name: /Grąžinti/ }).click();
 await page.waitForTimeout(300);
-results.deletedAfterRestore = (await text()).includes("Pašalintų įrašų nėra");
+results.deletedAfterRestore = !(await text()).includes(demoId);
 
 // 9. Moves page tabs
 await page.goto(base + "/moves/", { waitUntil: "networkidle" });
@@ -125,7 +137,7 @@ results.wishesAfterBuy = (await text()).match(/Nupirkta · (\d+)/)?.[1];
 
 // 12. Shelves: bulk add
 await page.goto(base + "/shelves/", { waitUntil: "networkidle" });
-results.shelvesBefore = (await text()).match(/lentyna \d+/g)?.length;
+results.shelvesBefore = (await text()).match(/lentyna \d+/g)?.length ?? 0;
 await page.getByRole("button", { name: /Nuskaityti lentyną/ }).click();
 await page.locator('input[list="s-pat"]').fill("Paupio virtuvė");
 await page.getByLabel("Lentyna (numeris)").fill("9");
@@ -153,7 +165,7 @@ await page.goto(base + "/tools/", { waitUntil: "networkidle" });
 await page.getByRole("button", { name: /Ieškoti/ }).click();
 await page.waitForSelector("text=/Kandidatų: \\d+/");
 results.dupes = (await text()).match(/Kandidatų: (\d+)/)?.[1];
-await page.getByRole("button", { name: "Pažymėti visus" }).click();
+await page.locator('input[type="checkbox"]').first().check();
 page.once("dialog", (d) => d.accept());
 await page.getByRole("button", { name: /Sulieti pažymėtas/ }).click();
 await page.waitForSelector("text=/Sulieta porų: \\d+/");
@@ -184,6 +196,7 @@ await page.waitForSelector("text=Išsaugota");
 await page.screenshot({ path: `${shots}/15-quick-done.png` });
 const quickId = (await text()).match(/Knyga (K\d+)/)?.[1];
 await page.goto(base + "/book/?id=" + quickId, { waitUntil: "networkidle" });
+void demoId;
 results.quick = { id: quickId, photos: await page.locator("section img").count(), who: (await text()).includes("Adelė"), patikslinti: (await text()).includes("patikslinti") };
 
 // 16. Desktop + dark
@@ -191,7 +204,7 @@ const d = await browser.newContext({ viewport: { width: 1280, height: 860 }, sto
 const dp = await d.newPage();
 await dp.goto(base + "/", { waitUntil: "networkidle" });
 await dp.screenshot({ path: `${shots}/12-desktop-dark.png` });
-await dp.goto(base + "/book/?id=K00001", { waitUntil: "networkidle" });
+await dp.goto(base + "/book/?id=K03504", { waitUntil: "networkidle" });   // v7 knyga su nuotrauka
 await dp.screenshot({ path: `${shots}/13-desktop-book-dark.png`, fullPage: true });
 
 console.log(JSON.stringify(results, null, 1));
@@ -199,5 +212,5 @@ console.log("errors:", errors.length ? errors : "none");
 await browser.close(); server.close();
 const expectTrue = ["bookK2Status", "bookK2AfterReturn", "bookK2Moved", "bookK2Edited", "bookK2Nerasta", "deletedListed", "deletedAfterRestore", "shelvesAfter"];
 const failed = expectTrue.filter((k) => results[k] !== true);
-if (failed.length || errors.length || results.catalogRows !== 10 || results.db.books !== 13 || results.quick?.photos !== 2 || !results.quick?.who) { console.error("E2E FAILED:", failed, errors); process.exit(1); }
+if (failed.length || errors.length || results.catalogRows < 100 || Number(results.bootstrapTotal) < 2900 || results.db.books < 2920 || results.quick?.photos !== 2 || !results.quick?.who) { console.error("E2E FAILED:", failed, errors); process.exit(1); }
 console.log("E2E OK");

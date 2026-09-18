@@ -12,6 +12,7 @@ import { useDeleted, useIndex, useInventory, useLog, useSettings } from "@/lib/r
 import { useLiveQuery } from "dexie-react-hooks";
 import { getRepo, type Backup } from "@/lib/repo/repo";
 import { seedDemo } from "@/lib/repo/seed";
+import { loadInitialData } from "@/components/Bootstrap";
 import { toast, toastError } from "@/components/Toast";
 import { Badge, Field, PageTitle, bookHref } from "@/components/ui";
 
@@ -162,8 +163,10 @@ export default function ToolsPage() {
         ))}
       </Section>
 
-      <Section title="Pavyzdiniai duomenys ir išvalymas">
+      <Section title="Pradiniai duomenys ir išvalymas" sub="Pradiniai duomenys — v7 skaičiuoklės eksportas (2026-09-18), įdėtas į svetainę. Atkūrimas pakeičia viską šiame įrenginyje.">
         <div className="flex flex-wrap gap-2">
+          <button className="btn btn-primary" disabled={busy} onClick={() => { if (!confirm("Pakeisti visus duomenis šiame įrenginyje v7 eksportu (2026-09-18)?")) return;
+            void run(async () => { const r = await loadInitialData(); toast(r ? `Atkurta: ${r.books} knygos` : "Pradinių duomenų failas nerastas", r ? "ok" : "bad"); }); }}><Icon name="undo" /> Atkurti v7 duomenis</button>
           <button className="btn" disabled={busy} onClick={() => run(async () => { const n = await seedDemo(getRepo()); toast(`Įkelta pavyzdinių knygų: ${n}`); })}>Įkelti pavyzdinius duomenis</button>
           <button className="btn btn-danger" disabled={busy} onClick={() => { if (confirm("Ištrinti VISUS duomenis šiame įrenginyje? Prieš tai eksportuok kopiją.")) void run(async () => { await getRepo().clearAll(); toast("Išvalyta"); }); }}>Ištrinti viską</button>
         </div>

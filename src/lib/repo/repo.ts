@@ -49,7 +49,7 @@ export class LibraryRepo {
     };
   }
 
-  async setSetting(key: keyof Settings, value: string | number | string[]): Promise<void> {
+  async setSetting(key: keyof Settings | "BOOTSTRAPPED" | "SHEETS_ID" | "SHEETS_CATALOG", value: string | number | string[]): Promise<void> {
     await this.db.settings.put({ key, value: Array.isArray(value) ? JSON.stringify(value) : String(value) });
   }
 

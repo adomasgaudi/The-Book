@@ -5,7 +5,7 @@ import { Icon } from "@/components/icons";
 import { useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { getRepo } from "@/lib/repo/repo";
-import { driveThumb, isExternalUrl } from "@/lib/repo/photos";
+import { displayUrl, isExternalUrl } from "@/lib/repo/photos";
 
 /** Rodo nuotrauką pagal vietinį ID (P…) arba išorinį URL (pvz. Google Drive). */
 export function Photo({ src, className = "", alt = "" }: { src: string; className?: string; alt?: string }) {
@@ -14,8 +14,8 @@ export function Photo({ src, className = "", alt = "" }: { src: string; classNam
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   const href = isExternalUrl(src) ? src : url;
   if (!href) return <div className={"animate-pulse bg-accent-soft " + className} />;
-  const img = <img src={isExternalUrl(src) ? driveThumb(src) : url} alt={alt} className={className} loading="lazy" />;
-  return isExternalUrl(src) ? <a href={src} target="_blank" rel="noreferrer">{img}</a> : img;
+  const img = <img src={isExternalUrl(src) ? displayUrl(src) : url} alt={alt} className={className} loading="lazy" />;
+  return isExternalUrl(src) ? <a href={displayUrl(src).replace(/thumbnail\?id=([^&]+).*/, "file/d/$1/view")} target="_blank" rel="noreferrer">{img}</a> : img;
 }
 
 /** Nuotraukų pasirinkimas (kamera / galerija) su peržiūra. */

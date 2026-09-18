@@ -1,6 +1,6 @@
 {
   "name": "namu-biblioteka",
-  "version": "8.0.8",
+  "version": "8.0.9",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "e2e": "node e2e/smoke.mjs"
+    "e2e": "node e2e/smoke.mjs",
+    "data": "tsx scripts/build-data.mjs",
+    "prebuild": "npm run data",
+    "predev": "npm run data"
   },
   "dependencies": {
     "@fontsource-variable/literata": "^5.3.0",
@@ -31,6 +34,7 @@
     "playwright-core": "^1.63.0",
     "serve-handler": "^6.1.7",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "^5.0.1"
   }

@@ -189,7 +189,7 @@ export default function ToolsPage() {
         ))}
       </Section>
 
-      <Section title="Pradiniai duomenys ir išvalymas" sub="Pradiniai duomenys — v7 skaičiuoklės eksportas (2026-09-18), įdėtas į svetainę. Atkūrimas pakeičia viską šiame įrenginyje.">
+      <Section title="Pradiniai duomenys ir išvalymas" sub={`Pradiniai duomenys — v7 skaičiuoklės eksportas + Žagarinė (2026-09-20), įdėti į svetainę. Šiame įrenginyje įkelta versija: ${s?.BOOTSTRAPPED ?? "—"}. Atkūrimas pakeičia viską šiame įrenginyje.`}>
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-primary" disabled={busy} onClick={() => { if (!confirm("Pakeisti visus duomenis šiame įrenginyje v7 eksportu (2026-09-18)?")) return;
             void run(async () => { const r = await loadInitialData(); toast(r ? `Atkurta: ${r.books} knygos` : "Pradinių duomenų failas nerastas", r ? "ok" : "bad"); }); }}><Icon name="undo" /> Atkurti v7 duomenis</button>

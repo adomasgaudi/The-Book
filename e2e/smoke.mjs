@@ -199,6 +199,20 @@ await page.goto(base + "/book/?id=" + quickId, { waitUntil: "networkidle" });
 void demoId;
 results.quick = { id: quickId, photos: await page.locator("section img").count(), who: (await text()).includes("Adelė"), patikslinti: (await text()).includes("patikslinti") };
 
+// 15c. Senas įrenginys su savais pakeitimais: skirtinga BOOTSTRAPPED versija → juosta „Atnaujinti dabar“ → nauji duomenys
+await page.evaluate(async () => {
+  const req = indexedDB.open("namu-biblioteka"); const db = await new Promise((res) => { req.onsuccess = () => res(req.result); });
+  const tx = db.transaction(["settings"], "readwrite"); tx.objectStore("settings").put({ key: "BOOTSTRAPPED", value: "2026-09-18 senas" }); tx.objectStore("settings").delete("BOOTSTRAP_LOG_COUNT");
+  await new Promise((res) => { tx.oncomplete = res; });
+});
+await page.goto(base + "/", { waitUntil: "networkidle" });
+await page.waitForSelector("text=Atnaujinti dabar", { timeout: 20000 });
+await page.screenshot({ path: `${shots}/16-update-banner.png` });
+await page.getByRole("button", { name: "Atnaujinti dabar" }).click();
+await page.waitForSelector("text=/Atnaujinta: \\d+ knygos/", { timeout: 60000 });
+await page.waitForTimeout(500);
+results.updateBanner = { total: (await text()).match(/(\d+) įrašai/)?.[1], bannerGone: !(await page.locator("text=Atnaujinti dabar").count()) };
+
 // 16. Desktop + dark
 const d = await browser.newContext({ viewport: { width: 1280, height: 860 }, storageState: await ctx.storageState(), colorScheme: "dark" });
 const dp = await d.newPage();
@@ -212,5 +226,5 @@ console.log("errors:", errors.length ? errors : "none");
 await browser.close(); server.close();
 const expectTrue = ["bookK2Status", "bookK2AfterReturn", "bookK2Moved", "bookK2Edited", "bookK2Nerasta", "deletedListed", "deletedAfterRestore", "shelvesAfter"];
 const failed = expectTrue.filter((k) => results[k] !== true);
-if (failed.length || errors.length || results.catalogRows < 100 || Number(results.bootstrapTotal) < 2900 || results.db.books < 2920 || results.quick?.photos !== 2 || !results.quick?.who) { console.error("E2E FAILED:", failed, errors); process.exit(1); }
+if (failed.length || errors.length || results.catalogRows < 100 || Number(results.bootstrapTotal) < 2900 || results.db.books < 2920 || results.quick?.photos !== 2 || !results.quick?.who || Number(results.updateBanner?.total) < 3400 || !results.updateBanner?.bannerGone) { console.error("E2E FAILED:", failed, errors); process.exit(1); }
 console.log("E2E OK");

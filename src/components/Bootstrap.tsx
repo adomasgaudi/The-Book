@@ -37,8 +37,7 @@ export function Bootstrap() {
       // pakeitimų — persikraunama tyliai; jei yra — tik pranešimas, sprendžia žmogus (Įrankiai).
       const meta = await fetchInitialMeta();
       if (!meta || meta.exported === done || done === "skipped" || done === "remote") return;
-      const ownEdits = (await repo.db.log.count()) > meta.logCount;
-      if (ownEdits) { if (!cancelled) toast("Yra naujesni pradiniai duomenys (" + meta.exported + "). Įrankiai → „Atkurti v7 duomenis“, jei norite juos įkelti.", "info"); return; }
+      if (await hasOwnEdits(meta.logCount)) { if (!cancelled) setUpdateAvailable(meta.exported); return; }
       const r = await loadInitialData();
       if (!cancelled && r) toast(`Atnaujintas katalogas (${meta.exported}): ${r.books} knygos`, "info");
     }
@@ -55,6 +54,21 @@ export function Bootstrap() {
   }, []);
   return null;
 }
+
+/** Ar šiame įrenginyje yra pakeitimų po paskutinio pradinių duomenų įkėlimo (žurnalo įrašai po įkėlimo). */
+async function hasOwnEdits(bundledLogCount: number): Promise<boolean> {
+  const repo = getRepo();
+  const mark = (await repo.db.settings.get("BOOTSTRAP_LOG_COUNT"))?.value;
+  const count = await repo.db.log.count();
+  // senesni įrenginiai žymos neturi: įkėlimas pats prideda vieną žurnalo įrašą
+  return mark ? count > Number(mark) : count > bundledLogCount + 1;
+}
+
+/** Pasiūlymas atnaujinti — rodo juosta (UpdateBanner). */
+const listeners = new Set<(v: string) => void>();
+let pending = "";
+export function setUpdateAvailable(v: string) { pending = v; listeners.forEach((l) => l(v)); }
+export function subscribeUpdate(l: (v: string) => void): () => void { listeners.add(l); l(pending); return () => { listeners.delete(l); }; }
 
 /** Pradinių duomenų versija ir žurnalo dydis — be viso failo apdorojimo. */
 async function fetchInitialMeta(): Promise<{ exported: string; logCount: number } | null> {
@@ -74,5 +88,7 @@ export async function loadInitialData(): Promise<{ books: number; photos: number
   const repo = getRepo();
   const r = await repo.importBackup(backup, "replace");
   await repo.setSetting("BOOTSTRAPPED", backup.exported ?? "1");
+  await repo.setSetting("BOOTSTRAP_LOG_COUNT", String(await repo.db.log.count()));
+  setUpdateAvailable("");
   return r;
 }

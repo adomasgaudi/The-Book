@@ -127,6 +127,8 @@ export interface Settings {
   /** Papildomos patalpos / skaitytojai, įvesti ranka. */
   PATALPOS_EXTRA: string[];
   SKAITYTOJAI_EXTRA: string[];
+  /** Kurios versijos pradiniai duomenys įkelti šiame įrenginyje (arba „remote“ / „skipped“). */
+  BOOTSTRAPPED?: string;
 }
 
 export interface Photo {

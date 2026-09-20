@@ -48,10 +48,11 @@ export class LibraryRepo {
       VARTOTOJAS: m.VARTOTOJAS || DEFAULT_SETTINGS.VARTOTOJAS,
       PATALPOS_EXTRA: m.PATALPOS_EXTRA ? JSON.parse(m.PATALPOS_EXTRA) : [],
       SKAITYTOJAI_EXTRA: m.SKAITYTOJAI_EXTRA ? JSON.parse(m.SKAITYTOJAI_EXTRA) : [],
+      BOOTSTRAPPED: m.BOOTSTRAPPED ?? "",
     };
   }
 
-  async setSetting(key: keyof Settings | "BOOTSTRAPPED" | "SHEETS_ID" | "SHEETS_CATALOG" | "API_URL" | "API_KEY" | "LAST_SYNC" | "SYNC_ERROR", value: string | number | string[]): Promise<void> {
+  async setSetting(key: keyof Settings | "BOOTSTRAPPED" | "SHEETS_ID" | "SHEETS_CATALOG" | "API_URL" | "API_KEY" | "LAST_SYNC" | "SYNC_ERROR" | "BOOTSTRAP_LOG_COUNT", value: string | number | string[]): Promise<void> {
     await this.db.settings.put({ key, value: Array.isArray(value) ? JSON.stringify(value) : String(value) });
   }
 

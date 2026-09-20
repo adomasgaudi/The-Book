@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { APP_TITLE } from "@/lib/domain/config";
 import { ToastHost } from "./Toast";
+import { UpdateBanner } from "./UpdateBanner";
 import { useMoves, useRemoteStatus } from "@/lib/repo/hooks";
 import { Icon, type IconName } from "./icons";
 
@@ -70,7 +71,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-20 border-b border-line bg-paper/90 px-4 py-3 backdrop-blur md:hidden">
           <Link href="/" className="serif text-base leading-tight">{APP_TITLE} <span className="tnum ml-1 text-[11px] text-muted" title="Versija">v{VERSION}</span></Link>
         </header>
-        <main className="flex-1 px-4 pb-24 pt-4 md:px-8 md:pb-10 md:pt-6">{children}</main>
+        <main className="flex-1 px-4 pb-24 pt-4 md:px-8 md:pb-10 md:pt-6"><UpdateBanner />{children}</main>
         <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-card/95 backdrop-blur md:hidden" aria-label="Pagrindinis meniu"
              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           {NAV.filter((n) => MOBILE.includes(n.href)).map((n) => (

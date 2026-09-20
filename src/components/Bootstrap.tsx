@@ -26,10 +26,21 @@ export function Bootstrap() {
         catch (e) { if (!cancelled) toast("Nepavyko sinchronizuoti su serveriu: " + (e instanceof Error ? e.message : e), "bad"); }
         return;
       }
-      if (await repo.db.settings.get("BOOTSTRAPPED")) return;
-      if ((await repo.db.books.count()) > 0) { await repo.setSetting("BOOTSTRAPPED", "skipped"); return; }
+      const done = (await repo.db.settings.get("BOOTSTRAPPED"))?.value;
+      if (!done) {
+        if ((await repo.db.books.count()) > 0) { await repo.setSetting("BOOTSTRAPPED", "skipped"); return; }
+        const r = await loadInitialData();
+        if (!cancelled && r) toast(`Įkeltas v7 katalogas: ${r.books} knygos`, "info");
+        return;
+      }
+      // Pradiniai duomenys svetainėje atnaujinti (nauja DATA_VERSION)? Jei įrenginyje nėra savų
+      // pakeitimų — persikraunama tyliai; jei yra — tik pranešimas, sprendžia žmogus (Įrankiai).
+      const meta = await fetchInitialMeta();
+      if (!meta || meta.exported === done || done === "skipped" || done === "remote") return;
+      const ownEdits = (await repo.db.log.count()) > meta.logCount;
+      if (ownEdits) { if (!cancelled) toast("Yra naujesni pradiniai duomenys (" + meta.exported + "). Įrankiai → „Atkurti v7 duomenis“, jei norite juos įkelti.", "info"); return; }
       const r = await loadInitialData();
-      if (!cancelled && r) toast(`Įkeltas v7 katalogas: ${r.books} knygos`, "info");
+      if (!cancelled && r) toast(`Atnaujintas katalogas (${meta.exported}): ${r.books} knygos`, "info");
     }
     start().catch(() => { /* be tinklo — liks tuščia, EmptyCatalog paaiškins */ });
 
@@ -43,6 +54,16 @@ export function Bootstrap() {
     return () => { cancelled = true; document.removeEventListener("visibilitychange", onVisible); };
   }, []);
   return null;
+}
+
+/** Pradinių duomenų versija ir žurnalo dydis — be viso failo apdorojimo. */
+async function fetchInitialMeta(): Promise<{ exported: string; logCount: number } | null> {
+  try {
+    const res = await fetch(`${BASE}/data/biblioteka.json`, { cache: "no-cache" });
+    if (!res.ok) return null;
+    const b = await res.json();
+    return { exported: String(b.exported ?? ""), logCount: (b.log ?? []).length };
+  } catch { return null; }
 }
 
 /** Įkelia pradinius duomenis (pakeičia esamus). Naudoja ir Įrankiai → „Atkurti v7 duomenis“. */

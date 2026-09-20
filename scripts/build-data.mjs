@@ -42,7 +42,9 @@ for (const f of existsSync(photoDir) ? readdirSync(photoDir) : []) {
   if (mm) { const m = moves.find((x) => x.id === mm[1]); if (m) { m.foto = ref; linked++; } }
 }
 
-const backup = { format: "namu-biblioteka", version: 1, exported: new Date().toISOString().slice(0, 16).replace("T", " "), source: "v7 eksportas 2026-09-18",
+// DATA_VERSION keičiama tik kai keičiasi data/v7 turinys — pagal ją įrenginiai supranta, kad reikia persikrauti.
+const DATA_VERSION = "2026-09-20 Žagarinė";
+const backup = { format: "namu-biblioteka", version: 1, exported: DATA_VERSION, source: "v7 eksportas 2026-09-18 + Žagarinė 2026-09-20",
                  books, shelves, moves, wishes, inventory, log, settings };
 mkdirSync(out, { recursive: true });
 writeFileSync(path.join(out, "biblioteka.json"), JSON.stringify(backup));

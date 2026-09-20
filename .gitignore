@@ -46,3 +46,4 @@ e2e/shots/
 
 # generated from data/v7 by scripts/build-data.mjs
 /public/data
+/.review

@@ -34,6 +34,13 @@ export interface AddShelfInput {
  * Dexie transakcijos atstoja LockService. Saugyklą galima pakeisti (Sheets, Supabase…) —
  * UI naudoja tik šią klasę.
  */
+/** Vėliausia „yyyy-MM-dd HH:mm“ žyma sąraše (tekstinis palyginimas; kitokio formato reikšmės ignoruojamos). */
+export function latestStamp(list: (string | undefined)[]): string {
+  let max = "";
+  for (const v of list) { const s = (v ?? "").trim(); if (/^\d{4}-\d{2}-\d{2}/.test(s) && s > max) max = s; }
+  return max;
+}
+
 export class LibraryRepo {
   constructor(readonly db: LibraryDB = getDb()) {}
 
@@ -87,7 +94,7 @@ export class LibraryRepo {
     const r = await api.call<{ knygu: number }>("ping");
     await this.setRemote(url, key);
     if (push) await this.uploadToServer();
-    await this.syncFromServer();
+    await this.syncFromServer({ seedIfOlder: !push });
     return r;
   }
 
@@ -100,12 +107,22 @@ export class LibraryRepo {
     return api.call<{ knygos: number; lentynos: number }>("uploadCatalog", { books: books.map(bookToRow), shelves: shelves.map(shelfToRow) });
   }
 
-  /** Visi serverio duomenys → vietinė saugykla (pakeičia). Įrenginio nustatymai lieka. */
-  async syncFromServer(): Promise<{ knygos: number; judejimai: number; lentynos: number }> {
+  /**
+   * Visi serverio duomenys → vietinė saugykla (pakeičia). Įrenginio nustatymai lieka.
+   * seedIfOlder: jei serverio katalogas senesnis už šio įrenginio (naujausia „Atnaujinta“ žyma ankstesnė),
+   * pirmiausia įkeliamas šio įrenginio katalogas — taip sena skaičiuoklė nepakeičia naujesnių svetainės duomenų.
+   */
+  async syncFromServer(opts: { seedIfOlder?: boolean } = {}): Promise<{ knygos: number; judejimai: number; lentynos: number; ikelta?: boolean }> {
     const api = await this.remote();
     if (!api) throw new Error("Serveris nenustatytas.");
     try {
-      const snap = await api.call<Snapshot>("snapshot");
+      let snap = await api.call<Snapshot>("snapshot");
+      let ikelta = false;
+      if (opts.seedIfOlder) {
+        const serverMax = latestStamp((snap.books ?? []).map((o) => o["Atnaujinta"] ?? ""));
+        const localMax = latestStamp((await this.db.books.toArray()).map((b) => b.atnaujinta));
+        if (localMax && localMax > serverMax) { await this.uploadToServer(); snap = await api.call<Snapshot>("snapshot"); ikelta = true; }
+      }
       const books = rowsToBooks(snap.books ?? []);
       const moves = (snap.moves ?? []).map(apiMove), wishes = (snap.wishes ?? []).map(apiWish);
       const shelves = [...new Map((snap.shelves ?? []).map(apiShelf).map((x) => [x.key, x])).values()];
@@ -118,7 +135,7 @@ export class LibraryRepo {
         for (const x of snap.settings ?? []) if (["PRIMINIMAS_DIENOS", "VALIUTA"].includes(x.key)) await this.db.settings.put({ key: x.key, value: String(x.value).replace(/\.0+$/, "") });
         await this.db.settings.bulkPut([{ key: "LAST_SYNC", value: nowStr() }, { key: "SYNC_ERROR", value: "" }, { key: "BOOTSTRAPPED", value: "remote" }]);
       });
-      return { knygos: books.length, judejimai: moves.length, lentynos: shelves.length };
+      return { knygos: books.length, judejimai: moves.length, lentynos: shelves.length, ikelta };
     } catch (e) {
       await this.db.settings.put({ key: "SYNC_ERROR", value: e instanceof Error ? e.message : String(e) });
       throw e;

@@ -64,10 +64,10 @@ todėl skaičiuoklė lieka vienintelis tiesos šaltinis, o nuotraukos toliau gul
 3. Įrašyk Web app URL į `public/config.json` (`apiUrl`, nebūtina `apiKey`) ir push'ink — tada **kiekvienas** atsidaręs svetainę
    įrenginys prisijungia pats; šeimai užtenka vienos nuorodos. Alternatyva be push'o: nuoroda `…/The-Book/?server=<URL>` arba
    Įrankiai → *Bendras serveris* → įklijuoti ranka.
-4. **Jei skaičiuoklėje senesnis katalogas nei svetainėje** (pvz. po Žagarinės perkatalogavimo): Įrankiai → *Bendras serveris* →
-   įklijuok URL → **„Įkelti į serverį“**. Tai perrašo lapus „Katalogas“ ir „Lentynos“ šio įrenginio duomenimis (judėjimai, noriu,
-   nuotraukos lieka), po to parsiunčia viską atgal. Rankinio CSV importo į skaičiuoklę nereikia. Padaryk tai **prieš** 3 žingsnį,
-   nes prisijungęs įrenginys pirmiausia parsisiunčia serverio versiją.
+4. **Jei skaičiuoklėje senesnis katalogas nei svetainėje** (pvz. po Žagarinės perkatalogavimo) — nieko daryti nereikia: pirmą
+   kartą prisijungdamas įrenginys palygina naujausią „Atnaujinta“ žymą ir, jei serveris atsilieka, pats įkelia savo katalogą
+   (lapai „Katalogas“ ir „Lentynos“ perrašomi; judėjimai, noriu, nuotraukos lieka). Rankinis variantas: Įrankiai → *Bendras
+   serveris* → „Įkelti į serverį“. Rankinio CSV importo į skaičiuoklę nereikia.
 5. (nebūtina) Script properties `API_KEY` — tada rašyti gali tik žinantys raktą.
 6. (nebūtina) `Code.gs` funkcijos `me_()` pradžioje pridėk `if (typeof API_WHO !== 'undefined' && API_WHO) return API_WHO;` — tada „Kas atnaujino“ rodys vardą iš svetainės.
 

@@ -17,7 +17,9 @@ export class RemoteApi {
         body: JSON.stringify({ fn, args, key: this.key, who: this.who }),
       });
     } catch {
-      throw new Error("Serveris nepasiekiamas (nėra interneto arba neteisingas URL).");
+      throw new Error(navigator.onLine === false
+        ? "Nėra interneto ryšio."
+        : "Serveris neatsako svetainei. Dažniausia priežastis: Web app diegimo „Who has access“ nėra „Anyone“ (Deploy › Manage deployments › ✎ › Who has access: Anyone › Deploy). Patikrink: atidaryk URL naujame lange — turi atsidaryti be Google prisijungimo.");
     }
     const text = await res.text();
     let j: { ok: boolean; result?: T; error?: string };

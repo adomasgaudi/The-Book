@@ -15,6 +15,7 @@ function fakeServer() {
   const moves: Record<string, unknown>[] = [];
   const wishes: Record<string, unknown>[] = [];
   const calls: string[] = [];
+  const shelvesUploaded: Record<string, string>[] = [];
   const row = (id: string) => books.find((b) => b.ID === id)!;
   const api: Record<string, (a: Record<string, unknown>) => unknown> = {
     ping: () => ({ ok: true, knygu: books.length }),
@@ -29,6 +30,7 @@ function fakeServer() {
       moves.push({ id: "J000" + (moves.length + 1), bookId: p.bookId, tipas: p.tipas, data: "2026-09-18", kam: p.kam, statusas: p.tipas === "Paskolinta" ? "Atvira" : "Uždaryta", foto: p.foto ? "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123499/view" : "", suma: "", puslapiai: "" });
       return { move: { moveId: "J000" + moves.length, foto: "", statusas: r.Statusas }, book: r, moves }; },
     deleteBook: (a) => { const r = row(a.id as string); r.Statusas = "Pašalintas"; return r; },
+    uploadCatalog: (a) => { const nb = a.books as Record<string, string>[]; books.splice(0, books.length, ...nb); shelvesUploaded.push(...(a.shelves as Record<string, string>[])); return { knygos: nb.length, lentynos: shelvesUploaded.length }; },
     addWish: (a) => { const w = a.w as Record<string, string>; wishes.push({ id: "W0001", autorius: w.autorius, pavadinimas: w.pavadinimas, prioritetas: "Aukštas", statusas: "Noriu", "pridėta": "2026-09-18 00:00:00" }); return { id: "W0001", foto: "", wishes }; },
   };
   const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
@@ -39,7 +41,7 @@ function fakeServer() {
     if (!fn) return new Response(JSON.stringify({ ok: false, error: "Nežinoma funkcija: " + req.fn }));
     return new Response(JSON.stringify({ ok: true, result: fn(req.args) }), { headers: { "content-type": "application/json" } });
   });
-  return { fetcher, calls, books, moves };
+  return { fetcher, calls, books, moves, shelvesUploaded };
 }
 
 let srv: ReturnType<typeof fakeServer>;
@@ -49,9 +51,11 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("bendras serveris (Apps Script API)", () => {
   it("connect → sync replaces local data with the server's; settings from the sheet", async () => {
-    await repo.addBook({ pavadinimas: "vietinė" });
+    const local = await repo.addBook({ pavadinimas: "vietinė" });
+    await repo.db.books.update(local.id, { atnaujinta: "2026-09-01 10:00" }); // vietiniai duomenys senesni už serverio
     const r = await repo.connectRemote("https://script.google.com/macros/s/x/exec", "slaptas");
     expect(r.knygu).toBe(2);
+    expect(srv.calls).not.toContain("uploadCatalog");
     const idx = await repo.getCatalogIndex();
     expect(idx.rows.map((x) => x.id)).toEqual(["K00001", "K00002"]);
     expect((await repo.getBook("K00001"))).toMatchObject({ statusas: "Skaitoma", laikytojas: "Žydrius", metai: "1996" });
@@ -97,7 +101,7 @@ describe("bendras serveris (Apps Script API)", () => {
     vi.stubGlobal("fetch", async () => new Response("<!DOCTYPE html><html>Google login</html>"));
     await expect(new RemoteApi("https://x/exec").call("ping")).rejects.toThrow(/Anyone/);
     vi.stubGlobal("fetch", async () => { throw new TypeError("Failed to fetch"); });
-    await expect(new RemoteApi("https://x/exec").call("ping")).rejects.toThrow(/nepasiekiamas/);
+    await expect(new RemoteApi("https://x/exec").call("ping")).rejects.toThrow(/neatsako|interneto/);
   });
 
   it("sync failure is recorded in status and the previous local copy survives", async () => {
@@ -106,5 +110,21 @@ describe("bendras serveris (Apps Script API)", () => {
     await expect(repo.syncFromServer()).rejects.toThrow(/Kvota/);
     expect((await repo.getRemoteStatus()).error).toBe("Kvota išnaudota");
     expect((await repo.getCatalogIndex()).rows).toHaveLength(2);
+  });
+
+  it("first connect seeds an older server with this device's catalog (newest „Atnaujinta“ wins), then pulls it back", async () => {
+    const local = await repo.addBook({ autorius: "Nauja", pavadinimas: "Žagarinės knyga", patalpa: "Žagarinė", lentyna: "salonas 12" });
+    await repo.db.books.update(local.id, { atnaujinta: "2026-09-20 17:57" });
+    const r = await repo.connectRemote("https://script.google.com/macros/s/x/exec", "slaptas");
+    expect(r.knygu).toBe(2);                       // ping prieš įkėlimą
+    expect(srv.calls.filter((c) => c === "uploadCatalog")).toHaveLength(1);
+    expect(srv.books.map((b) => b.Pavadinimas)).toEqual(["Žagarinės knyga"]);
+    expect(srv.books[0]).toMatchObject({ Patalpa: "Žagarinė", Lentyna: "salonas 12", Atnaujinta: "2026-09-20 17:57" });
+    const idx = await repo.getCatalogIndex();
+    expect(idx.rows.map((x) => x.pavadinimas)).toEqual(["Žagarinės knyga"]);
+    // antrą kartą (jau sinchronizuota) — tik parsiuntimas
+    srv.calls.length = 0;
+    await repo.syncFromServer();
+    expect(srv.calls).toEqual(["snapshot"]);
   });
 });

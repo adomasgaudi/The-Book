@@ -23,9 +23,10 @@ export function Bootstrap() {
       await applySiteServer(repo);
       const st = await repo.getRemoteStatus();
       if (st.url) {
-        try { const r = await repo.syncFromServer(); if (!cancelled && !st.lastSync) toast(`Bendri duomenys: ${r.knygos} knygos`, "info"); }
+        // Pirmas prisijungimas šiame įrenginyje: jei serveryje senesnis katalogas — pirmiausia įkeliamas šio įrenginio.
+        try { const r = await repo.syncFromServer({ seedIfOlder: !st.lastSync }); if (!cancelled && !st.lastSync) toast(r.ikelta ? `Serverio katalogas atnaujintas iš svetainės: ${r.knygos} knygos` : `Bendri duomenys: ${r.knygos} knygos`, "info"); return; }
         catch (e) { if (!cancelled) toast("Nepavyko sinchronizuoti su serveriu: " + (e instanceof Error ? e.message : e), "bad"); }
-        return;
+        // serveris nepasiekiamas — naujas įrenginys vis tiek gauna svetainės katalogą (žemiau)
       }
       const done = (await repo.db.settings.get("BOOTSTRAPPED"))?.value;
       if (!done) {

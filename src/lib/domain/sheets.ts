@@ -5,7 +5,7 @@
  */
 import { isMoveType } from "./config";
 import { emptyBook, nextBookId, shelfKey } from "./catalog";
-import { parseCsv, detectDelimiter } from "./csv";
+import { BOOK_CSV_COLUMNS, parseCsv, detectDelimiter } from "./csv";
 import { splitList, toNumberOrNull, trim } from "./text";
 import type { Book, InventoryEntry, Move, Shelf, Wish } from "./types";
 
@@ -70,6 +70,23 @@ export function rowsToBooks(rows: Row[]): Book[] {
     });
   }
   return books;
+}
+
+const cell = (v: unknown): string => Array.isArray(v) ? v.join(", ") : v === null || v === undefined ? "" : String(v);
+
+/** Knyga → lapo eilutė (antraštė → tekstas), atvirkščiai nei rowToBook. Skirta uploadCatalog. */
+export function bookToRow(b: Book): Row {
+  const o: Row = {};
+  for (const [h, k] of BOOK_CSV_COLUMNS) o[h] = cell(b[k]);
+  return o;
+}
+
+/** Lentyna → lapo „Lentynos“ eilutė (stulpeliai kaip CFG.SHELF_COLS). */
+export function shelfToRow(s: Shelf): Row {
+  return {
+    Patalpa: s.patalpa, Lentyna: s.lentyna, Tema: s.tema, "Knygų": String(s.knygu ?? 0), Statusas: s.statusas,
+    Nuotraukos: s.nuotraukos.join(", "), Pastaba: s.pastaba, Atnaujinta: s.atnaujinta, Kas: s.kas,
+  };
 }
 
 export function parseMoves(text: string): Move[] {

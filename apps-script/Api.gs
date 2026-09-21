@@ -13,6 +13,8 @@
  *         Execute as: Me            (rašo į lapą tavo vardu — kitiems Google paskyros nereikia)
  *         Who has access: Anyone
  *    2) Nukopijuok Web app URL į svetainę: Įrankiai › Bendras serveris.
+ *       Jei skaičiuoklėje senesnis katalogas nei svetainėje — spausk „Įkelti į serverį“ (uploadCatalog):
+ *       lapai Katalogas ir Lentynos perrašomi svetainės duomenimis, kiti lapai lieka.
  *    3) (nebūtina) Project Settings › Script properties › API_KEY = slaptas žodis;
  *       tą patį žodį įrašyk svetainėje. Be jo rašyti gali kiekvienas, žinantis URL.
  *    4) (nebūtina, kad „Kas atnaujino“ rodytų vartotojo vardą iš svetainės) Code.gs
@@ -70,6 +72,9 @@ var API = {
 
   /** Suliejimas (kaip sulietiPoras, tik poros ateina iš svetainės). */
   mergePairs: function (a) { return apiMergePairs_(a.pairs || []); },
+
+  // Vienkartinis: svetainės katalogas + lentynos → skaičiuoklė (pakeičia lapų turinį).
+  uploadCatalog: function (a) { return apiUploadCatalog_(a.books || [], a.shelves || []); },
 };
 
 // ---------- pagalbinės ----------
@@ -157,6 +162,53 @@ function apiRemovePhoto_(id, url) {
   cell.setValue(left.join(', '));
   stamp_(c, row); clearCache_();
   log_('Foto pašalinta', id, url);
+}
+
+/**
+ * Pakeičia lapų „Katalogas“ (visos eilutės po antrašte) ir „Lentynos“ turinį svetainės duomenimis.
+ * Antraštės lieka lapo; trūkstami stulpeliai pridedami gale. Tuščios eilutės ištrinamos.
+ * Prieš tai skaičiuoklės kopija: File › Version history (Google saugo automatiškai).
+ */
+function apiUploadCatalog_(books, shelves) {
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var c = cat_();
+    var nb = apiWriteRows_(c.sheet, c.headerRow, c.headers, books, ['Nr.', 'Metai', 'Puslapiai']);
+    var ss = ss_();
+    ensureSheet_(ss, CFG.SH_SHELVES, CFG.SHELF_COLS);
+    var sh = ss.getSheetByName(CFG.SH_SHELVES);
+    var hdr = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(function (v) { return String(v).trim(); });
+    var ns = apiWriteRows_(sh, 1, hdr, shelves, ['Knygų']);
+    clearCache_();
+    log_('Katalogas įkeltas iš svetainės', nb + ' knygos', ns + ' lentynos');
+    return { knygos: nb, lentynos: ns };
+  } finally { lock.releaseLock(); }
+}
+
+/** Įrašo objektų sąrašą (antraštė → reikšmė) į lapą po antraštės eilute; grąžina eilučių skaičių. */
+function apiWriteRows_(sheet, headerRow, headers, rows, numeric) {
+  headers = headers.slice();
+  rows.forEach(function (o) {
+    Object.keys(o).forEach(function (k) { if (k && headers.indexOf(k) < 0) headers.push(k); });
+  });
+  while (headers.length && !headers[headers.length - 1]) headers.pop();
+  sheet.getRange(headerRow, 1, 1, headers.length).setValues([headers]);
+  var old = sheet.getLastRow() - headerRow;
+  if (old > 0) sheet.getRange(headerRow + 1, 1, old, sheet.getMaxColumns()).clearContent();
+  if (!rows.length) return 0;
+  var isNum = {}; (numeric || []).forEach(function (h) { isNum[h] = 1; });
+  var vals = rows.map(function (o) {
+    return headers.map(function (h) {
+      var v = h ? o[h] : '';
+      if (v === null || v === undefined) return '';
+      if (isNum[h] && v !== '' && !isNaN(Number(v))) return Number(v);
+      return String(v);
+    });
+  });
+  sheet.getRange(headerRow + 1, 1, vals.length, headers.length).setValues(vals);
+  var extra = sheet.getLastRow() - headerRow - vals.length;
+  if (extra > 0) sheet.deleteRows(headerRow + vals.length + 1, extra);
+  return vals.length;
 }
 
 function apiMergePairs_(pairs) {

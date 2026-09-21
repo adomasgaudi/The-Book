@@ -64,8 +64,12 @@ todėl skaičiuoklė lieka vienintelis tiesos šaltinis, o nuotraukos toliau gul
 3. Įrašyk Web app URL į `public/config.json` (`apiUrl`, nebūtina `apiKey`) ir push'ink — tada **kiekvienas** atsidaręs svetainę
    įrenginys prisijungia pats; šeimai užtenka vienos nuorodos. Alternatyva be push'o: nuoroda `…/The-Book/?server=<URL>` arba
    Įrankiai → *Bendras serveris* → įklijuoti ranka.
-4. (nebūtina) Script properties `API_KEY` — tada rašyti gali tik žinantys raktą.
-5. (nebūtina) `Code.gs` funkcijos `me_()` pradžioje pridėk `if (typeof API_WHO !== 'undefined' && API_WHO) return API_WHO;` — tada „Kas atnaujino“ rodys vardą iš svetainės.
+4. **Jei skaičiuoklėje senesnis katalogas nei svetainėje** (pvz. po Žagarinės perkatalogavimo): Įrankiai → *Bendras serveris* →
+   įklijuok URL → **„Įkelti į serverį“**. Tai perrašo lapus „Katalogas“ ir „Lentynos“ šio įrenginio duomenimis (judėjimai, noriu,
+   nuotraukos lieka), po to parsiunčia viską atgal. Rankinio CSV importo į skaičiuoklę nereikia. Padaryk tai **prieš** 3 žingsnį,
+   nes prisijungęs įrenginys pirmiausia parsisiunčia serverio versiją.
+5. (nebūtina) Script properties `API_KEY` — tada rašyti gali tik žinantys raktą.
+6. (nebūtina) `Code.gs` funkcijos `me_()` pradžioje pridėk `if (typeof API_WHO !== 'undefined' && API_WHO) return API_WHO;` — tada „Kas atnaujino“ rodys vardą iš svetainės.
 
 Kaip veikia: kiekvienas įrenginys laiko pilną kopiją (IndexedDB) ir rodo ją akimirksniu ir be interneto; kiekvienas pakeitimas
 pirmiausia įrašomas serveryje (write-through), o vietinė kopija atnaujinama iš serverio atsakymo; atidarius programą ar grįžus į ją

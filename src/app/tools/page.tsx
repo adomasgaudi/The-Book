@@ -57,7 +57,7 @@ export default function ToolsPage() {
         <ol className="mb-3 list-decimal space-y-1 pl-5 text-sm text-muted">
           <li>Skaičiuoklė → Extensions → Apps Script → pridėk failą <code>Api.gs</code> (turinys — repozitorijuje <code>apps-script/Api.gs</code>).</li>
           <li>Deploy → New deployment → Web app: <b>Execute as: Me</b>, <b>Who has access: Anyone</b>. Nukopijuok Web app URL.</li>
-          <li>Įklijuok URL čia ir spausk „Prisijungti“. Raktas — jei Script properties nustatei <code>API_KEY</code>.</li>
+          <li>Įklijuok URL čia. „Prisijungti“ parsiunčia serverio duomenis į šį įrenginį; „Įkelti į serverį“ pirmiausia perrašo serverio Katalogą ir Lentynas šio įrenginio duomenimis (kai serveryje senesnė versija). Raktas — jei Script properties nustatei <code>API_KEY</code>.</li>
         </ol>
         <div className="grid gap-2 md:grid-cols-[1fr_12rem]">
           <input className="input" placeholder="https://script.google.com/macros/s/…/exec" value={apiUrl ?? remote?.url ?? ""} onChange={(e) => setApiUrl(e.target.value)} autoComplete="off" />
@@ -68,6 +68,13 @@ export default function ToolsPage() {
             const r = await getRepo().connectRemote(apiUrl ?? remote?.url ?? "", apiKey ?? remote?.key ?? "");
             toast(`Prisijungta: serveryje ${r.knygu} knygos — duomenys parsiųsti`);
           })}><Icon name="repeat" /> {remote?.url ? "Išsaugoti ir sinchronizuoti" : "Prisijungti"}</button>
+          <button className="btn" disabled={busy || !(apiUrl ?? remote?.url) || !idx || idx.meta.viso === 0} onClick={() => {
+            if (!confirm(`Serverio lapai „Katalogas“ ir „Lentynos“ bus PAKEISTI šio įrenginio duomenimis (${idx?.meta.viso ?? 0} knygos). Serverio judėjimai, noriu ir nuotraukos lieka. Tęsti?`)) return;
+            void run(async () => {
+              const r = await getRepo().connectRemote(apiUrl ?? remote?.url ?? "", apiKey ?? remote?.key ?? "", true);
+              toast(`Įkelta į serverį ir sinchronizuota: serveryje ${r.knygu} knygos`);
+            });
+          }}><Icon name="upload" /> Įkelti į serverį</button>
           {remote?.url && <>
             <button className="btn" disabled={busy} onClick={() => run(async () => { const r = await getRepo().syncFromServer(); toast(`Sinchronizuota: ${r.knygos} knygos, ${r.judejimai} judėjimai`); })}>Sinchronizuoti dabar</button>
             <button className="btn btn-ghost" disabled={busy} onClick={() => { if (confirm("Atsijungti nuo bendro serverio? Duomenys liks šiame įrenginyje, bet pakeitimai nebebus siunčiami.")) void run(async () => { await getRepo().setRemote("", ""); setApiUrl(""); toast("Atsijungta — vietinis režimas"); }); }}>Atsijungti</button>

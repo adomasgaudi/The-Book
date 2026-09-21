@@ -8,7 +8,7 @@ import { planMove, readingStats, viewMoves, type MoveFilter, type ReadingStats }
 import { computeStats, type Stats } from "@/lib/domain/stats";
 import { importCsvBooks, type CsvImportResult } from "@/lib/domain/csv";
 import { blobToDataUrl, RemoteApi, type Snapshot } from "./remote";
-import { apiInventory, apiLog, apiMove, apiShelf, apiWish, rowToBook, rowsToBooks, type Row } from "@/lib/domain/sheets";
+import { apiInventory, apiLog, apiMove, apiShelf, apiWish, bookToRow, rowToBook, rowsToBooks, shelfToRow, type Row } from "@/lib/domain/sheets";
 import {
   isFullCatalogCsv, parseCatalog, parseInventory, parseMoves, parseSettings, parseShelves, parseWishes, sheetCsvUrl, spreadsheetIdFrom,
 } from "@/lib/domain/sheets";
@@ -81,13 +81,23 @@ export class LibraryRepo {
     return { url: u?.value ?? "", key: k?.value ?? "", lastSync: t?.value ?? "", error: e?.value ?? "" };
   }
 
-  /** Patikrina serverį (ping) ir parsiunčia visus duomenis. */
-  async connectRemote(url: string, key: string): Promise<{ knygu: number }> {
+  /** Patikrina serverį (ping) ir parsiunčia visus duomenis. Su push — pirma įkelia šio įrenginio katalogą į serverį. */
+  async connectRemote(url: string, key: string, push = false): Promise<{ knygu: number }> {
     const api = new RemoteApi(trim(url), trim(key), (await this.getSettings()).VARTOTOJAS);
     const r = await api.call<{ knygu: number }>("ping");
     await this.setRemote(url, key);
+    if (push) await this.uploadToServer();
     await this.syncFromServer();
     return r;
+  }
+
+  /** Šio įrenginio katalogas ir lentynos → serverio skaičiuoklė (pakeičia lapus „Katalogas“ ir „Lentynos“). */
+  async uploadToServer(): Promise<{ knygos: number; lentynos: number }> {
+    const api = await this.remote();
+    if (!api) throw new Error("Serveris nenustatytas.");
+    const [books, shelves] = await Promise.all([this.db.books.toArray(), this.db.shelves.toArray()]);
+    books.sort((a, b) => a.id.localeCompare(b.id));
+    return api.call<{ knygos: number; lentynos: number }>("uploadCatalog", { books: books.map(bookToRow), shelves: shelves.map(shelfToRow) });
   }
 
   /** Visi serverio duomenys → vietinė saugykla (pakeičia). Įrenginio nustatymai lieka. */

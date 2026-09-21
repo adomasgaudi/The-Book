@@ -61,7 +61,9 @@ todėl skaičiuoklė lieka vienintelis tiesos šaltinis, o nuotraukos toliau gul
 
 1. Skaičiuoklė → Extensions → Apps Script → pridėk failą `Api.gs` (turinys iš `apps-script/Api.gs`).
 2. Deploy → New deployment → Web app: **Execute as: Me**, **Who has access: Anyone**. Nukopijuok Web app URL.
-3. Svetainėje: Įrankiai → *Bendras serveris* → įklijuok URL → „Prisijungti“. Kiekviename įrenginyje tą patį.
+3. Įrašyk Web app URL į `public/config.json` (`apiUrl`, nebūtina `apiKey`) ir push'ink — tada **kiekvienas** atsidaręs svetainę
+   įrenginys prisijungia pats; šeimai užtenka vienos nuorodos. Alternatyva be push'o: nuoroda `…/The-Book/?server=<URL>` arba
+   Įrankiai → *Bendras serveris* → įklijuoti ranka.
 4. (nebūtina) Script properties `API_KEY` — tada rašyti gali tik žinantys raktą.
 5. (nebūtina) `Code.gs` funkcijos `me_()` pradžioje pridėk `if (typeof API_WHO !== 'undefined' && API_WHO) return API_WHO;` — tada „Kas atnaujino“ rodys vardą iš svetainės.
 

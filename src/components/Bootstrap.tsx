@@ -20,6 +20,7 @@ export function Bootstrap() {
     const repo = getRepo();
 
     async function start() {
+      await applySiteServer(repo);
       const st = await repo.getRemoteStatus();
       if (st.url) {
         try { const r = await repo.syncFromServer(); if (!cancelled && !st.lastSync) toast(`Bendri duomenys: ${r.knygos} knygos`, "info"); }
@@ -53,6 +54,27 @@ export function Bootstrap() {
     return () => { cancelled = true; document.removeEventListener("visibilitychange", onVisible); };
   }, []);
   return null;
+}
+
+/**
+ * Bendro serverio adresas gali būti įrašytas pačioje svetainėje (public/config.json → { apiUrl, apiKey })
+ * arba nuorodoje ?server=…&key=… — tada šeimos nariams nereikia nieko įklijuoti: atsidarė ir mato tą patį.
+ * Vietinis nustatymas turi pirmenybę, jei žmogus jau prisijungė pats.
+ */
+async function applySiteServer(repo: ReturnType<typeof getRepo>): Promise<void> {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    let url = q.get("server") ?? "", key = q.get("key") ?? "";
+    if (!url) {
+      const res = await fetch(`${BASE}/config.json`, { cache: "no-cache" });
+      if (res.ok) { const c = await res.json(); url = String(c.apiUrl ?? ""); key = String(c.apiKey ?? key); }
+    }
+    if (!url) return;
+    const st = await repo.getRemoteStatus();
+    if (st.url === url && st.key === key) return;
+    if (st.url && !q.get("server")) return;           // žmogus prisijungė pats — negriaunam
+    await repo.setRemote(url, key);
+  } catch { /* konfigūracijos nėra — vietinis režimas */ }
 }
 
 /** Ar šiame įrenginyje yra pakeitimų po paskutinio pradinių duomenų įkėlimo (žurnalo įrašai po įkėlimo). */

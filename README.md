@@ -69,6 +69,8 @@ todėl skaičiuoklė lieka vienintelis tiesos šaltinis, o nuotraukos toliau gul
    (lapai „Katalogas“ ir „Lentynos“ perrašomi; judėjimai, noriu, nuotraukos lieka). Rankinis variantas: Įrankiai → *Bendras
    serveris* → „Įkelti į serverį“. Rankinio CSV importo į skaičiuoklę nereikia.
 5. (nebūtina) Script properties `API_KEY` — tada rašyti gali tik žinantys raktą.
+   Iš komandinės eilutės (bet kuriame kompiuteryje su `npm ci`): `npx tsx scripts/server.ts check` paaiškina, kodėl svetainė
+   nepasiekia serverio; `npx tsx scripts/server.ts push` įkelia `data/v7/csv` katalogą ir lentynas į skaičiuoklę; `count` — kas serveryje.
 6. (nebūtina) `Code.gs` funkcijos `me_()` pradžioje pridėk `if (typeof API_WHO !== 'undefined' && API_WHO) return API_WHO;` — tada „Kas atnaujino“ rodys vardą iš svetainės.
 
 Kaip veikia: kiekvienas įrenginys laiko pilną kopiją (IndexedDB) ir rodo ją akimirksniu ir be interneto; kiekvienas pakeitimas

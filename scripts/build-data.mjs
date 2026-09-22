@@ -43,8 +43,8 @@ for (const f of existsSync(photoDir) ? readdirSync(photoDir) : []) {
 }
 
 // DATA_VERSION keičiama tik kai keičiasi data/v7 turinys — pagal ją įrenginiai supranta, kad reikia persikrauti.
-const DATA_VERSION = "2026-09-20 Žagarinė";
-const backup = { format: "namu-biblioteka", version: 1, exported: DATA_VERSION, source: "v7 eksportas 2026-09-18 + Žagarinė 2026-09-20",
+const DATA_VERSION = "2026-09-22 senos vietos";
+const backup = { format: "namu-biblioteka", version: 1, exported: DATA_VERSION, source: "v7 eksportas 2026-09-18 + Žagarinė 2026-09-20 + senų Žagarinės vietų pašalinimas 2026-09-22",
                  books, shelves, moves, wishes, inventory, log, settings };
 mkdirSync(out, { recursive: true });
 writeFileSync(path.join(out, "biblioteka.json"), JSON.stringify(backup));

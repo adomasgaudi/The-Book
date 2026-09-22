@@ -25,10 +25,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      # Bazinis kelias priklauso nuo to, ar GitHub Pages turi įrašytą savą domeną (Settings → Pages → Custom domain):
+      #   su domenu (pvz. www.gaudibook.lt) svetainė gyvena šaknyje „/“,
+      #   be jo — po https://<owner>.github.io/<repo>/ ir sub-kelias įkepamas į nuorodas.
+      - id: basepath
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cname=$(gh api "repos/${{ github.repository }}/pages" --jq '.cname // empty' 2>/dev/null || true)
+          if [ -n "$cname" ]; then
+            echo "Savas domenas: $cname → bazinis kelias /"
+            echo "value=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Savo domeno nėra → bazinis kelias /${{ github.event.repository.name }}"
+            echo "value=/${{ github.event.repository.name }}" >> "$GITHUB_OUTPUT"
+          fi
       - run: npm run build
         env:
-          # Site lives at https://<owner>.github.io/<repo>/ — bake the sub-path in.
-          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.basepath.outputs.value }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

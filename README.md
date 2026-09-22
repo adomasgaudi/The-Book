@@ -52,6 +52,10 @@ npm run e2e        # naršyklės testas prieš out/ (reikia Chromium)
 1. GitHub → **Settings → Pages → Source: GitHub Actions**.
 2. Kiekvienas `push` į `main` paleidžia `.github/workflows/deploy.yml` (check → build → deploy).
 3. Svetainė: `https://<vartotojas>.github.io/<repo>/` — sub-kelias įrašomas per `NEXT_PUBLIC_BASE_PATH`.
+4. **Savas domenas** (dabar `www.gaudibook.lt`): GitHub → Settings → Pages → Custom domain → įrašyti ir išsaugoti; DNS
+   tiekėjo (Hostinger) zonoje: `CNAME www → adomasgaudi.github.io` ir A įrašai `@` → 185.199.108.153, 185.199.109.153,
+   185.199.110.153, 185.199.111.153. Workflow pats pastebi įrašytą domeną ir stato svetainę šaknyje „/“; jei domenas
+   nuimamas, grįžta prie `/<repo>/`. Nieko kode keisti nereikia.
 
 ## Bendri duomenys visiems (rekomenduojama)
 

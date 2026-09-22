@@ -8,8 +8,9 @@ export const APP_TITLE = "Mūsų namų bibliotekos dalinimuisi";
 
 export const PATALPOS = [
   "Fabula", "Paupio 2 aukštas", "Paupio Rūtos", "Paupio Žydriaus",
-  "Paupio virtuvė", "Žagarinė baltoji salonė", "Žagarinė rudoji salonė",
-  "Žagarinė miegamasis", "Žagarinė priepirtis", "Klaipėda Naujėkų", "kita",
+  "Paupio virtuvė", "Žagarinė salonas", "Žagarinė priepirtis",
+  "Žagarinė miegamasis", "Valančiaus Tarasonių", "Čiurlionio Ritos",
+  "Klaipėdos Naujėkų", "kita",
 ] as const;
 
 export const SHELF_STATUSES = ["Laukia apdorojimo", "Apdorota"] as const;
